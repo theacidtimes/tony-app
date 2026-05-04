@@ -69,7 +69,8 @@ export default function Home() {
       const refineRes = await fetch("/api/refine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scene }),
+        // cameraAngle now goes to refine so it gets embedded in the prompt
+        body: JSON.stringify({ scene, cameraAngle }),
       });
       const refineData = await refineRes.json();
       if (!refineRes.ok) throw new Error(refineData.error);
@@ -78,7 +79,8 @@ export default function Home() {
       const generateRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, cameraAngle, aspectRatio, model }),
+        // cameraAngle already embedded in refinedPrompt — not needed here
+        body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, aspectRatio, model }),
       });
       const generateData = await generateRes.json();
       if (!generateRes.ok) throw new Error(generateData.error);
