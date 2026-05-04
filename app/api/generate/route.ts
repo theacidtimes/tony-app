@@ -10,11 +10,12 @@ const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle 
 const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency.";
 const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
-const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
-  "1:1": { width: 1024, height: 1024 },
-  "4:5": { width: 1024, height: 1280 },
-  "9:16": { width: 864, height: 1536 },
-  "16:9": { width: 1536, height: 864 },
+// flux-2/lora aceita string no formato "widthxheight"
+const ASPECT_RATIOS: Record<string, string> = {
+  "1:1": "1024x1024",
+  "4:5": "1024x1280",
+  "9:16": "864x1536",
+  "16:9": "1536x864",
 };
 
 export async function POST(request: Request) {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Refined prompt is required" }, { status: 400 });
     }
 
-    const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
+    const imageSize = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
 
     const fullPrompt = [
       `The scene: ${CHARACTER}, ${refinedPrompt}`,
@@ -39,28 +40,19 @@ export async function POST(request: Request) {
       input: {
         prompt: fullPrompt,
         loras: [{ path: LORA_URL, scale: 0.9 }],
-        image_size: dimensions,
+        image_size: imageSize,
         num_inference_steps: 28,
         guidance_scale: 3.5,
         num_images: 1,
       },
     });
 
-    // Log completo para debug
-    console.log("FAL result keys:", Object.keys(result));
-    console.log("FAL result.data:", JSON.stringify(result.data).slice(0, 300));
-
-    // Tenta todos os caminhos possíveis para a imagem
-    const data = result.data as Record<string, unknown>;
-    const images =
-      (data?.images as Array<{ url: string }>) ||
-      (result as unknown as { images: Array<{ url: string }> }).images;
-
-    const imageUrl = images?.[0]?.url;
+    const data = result.data as { images?: Array<{ url: string }> };
+    const imageUrl = data?.images?.[0]?.url;
 
     if (!imageUrl) {
-      console.error("Full result:", JSON.stringify(result).slice(0, 500));
-      return NextResponse.json({ error: "No image generated — check server logs" }, { status: 500 });
+      console.error("No image URL:", JSON.stringify(result).slice(0, 300));
+      return NextResponse.json({ error: "No image generated" }, { status: 500 });
     }
 
     return NextResponse.json({ imageUrl });
