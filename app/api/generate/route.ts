@@ -35,15 +35,17 @@ export async function POST(request: Request) {
       RULES,
     ].filter(Boolean).join(" ");
 
+    // flux-lora-fast-training gera LoRAs compatíveis com fal-ai/flux-lora (Flux 1)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (fal.subscribe as any)("fal-ai/flux-2/lora", {
+    const result = await (fal.subscribe as any)("fal-ai/flux-lora", {
       input: {
         prompt: fullPrompt,
-        loras: [{ path: LORA_URL, scale: 0.9 }],
+        loras: [{ path: LORA_URL, scale: 1.0 }],
         image_size: dimensions,
         num_inference_steps: 28,
         guidance_scale: 3.5,
         num_images: 1,
+        enable_safety_checker: false,
       },
     });
 
