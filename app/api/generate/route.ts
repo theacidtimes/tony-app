@@ -10,12 +10,11 @@ const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle 
 const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency.";
 const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
-// flux-2/lora aceita string no formato "widthxheight"
-const ASPECT_RATIOS: Record<string, string> = {
-  "1:1": "1024x1024",
-  "4:5": "1024x1280",
-  "9:16": "864x1536",
-  "16:9": "1536x864",
+const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
+  "1:1": { width: 1024, height: 1024 },
+  "4:5": { width: 1024, height: 1280 },
+  "9:16": { width: 864, height: 1536 },
+  "16:9": { width: 1536, height: 864 },
 };
 
 export async function POST(request: Request) {
@@ -26,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Refined prompt is required" }, { status: 400 });
     }
 
-    const imageSize = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
+    const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
 
     const fullPrompt = [
       `The scene: ${CHARACTER}, ${refinedPrompt}`,
@@ -36,19 +35,21 @@ export async function POST(request: Request) {
       RULES,
     ].filter(Boolean).join(" ");
 
-    const result = await fal.subscribe("fal-ai/flux-2/lora", {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (fal.subscribe as any)("fal-ai/flux-2/lora", {
       input: {
         prompt: fullPrompt,
         loras: [{ path: LORA_URL, scale: 0.9 }],
-        image_size: imageSize,
+        image_size: dimensions,
         num_inference_steps: 28,
         guidance_scale: 3.5,
         num_images: 1,
       },
     });
 
-    const data = result.data as { images?: Array<{ url: string }> };
-    const imageUrl = data?.images?.[0]?.url;
+    const imageUrl =
+      result?.data?.images?.[0]?.url ||
+      result?.images?.[0]?.url;
 
     if (!imageUrl) {
       console.error("No image URL:", JSON.stringify(result).slice(0, 300));
