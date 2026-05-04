@@ -6,11 +6,8 @@ fal.config({ credentials: process.env.FAL_KEY });
 const LORA_URL = "https://v3b.fal.media/files/b/0a98df64/eQMXIQDgmJv2T3BrX0Yun_pytorch_lora_weights.safetensors";
 
 const CHARACTER = "TONI_TIGER character, an anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build";
-
 const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
-
 const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency.";
-
 const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
 const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
@@ -30,7 +27,6 @@ export async function POST(request: Request) {
 
     const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
 
-    // Estrutura próxima ao workflow do Weave
     const fullPrompt = [
       `The scene: ${CHARACTER}, ${refinedPrompt}`,
       cameraAngle ? `The camera angle: ${cameraAngle}.` : "",
@@ -50,12 +46,21 @@ export async function POST(request: Request) {
       },
     });
 
-    const data = result.data as { images?: Array<{ url: string }> };
-    const imageUrl = data?.images?.[0]?.url;
+    // Log completo para debug
+    console.log("FAL result keys:", Object.keys(result));
+    console.log("FAL result.data:", JSON.stringify(result.data).slice(0, 300));
+
+    // Tenta todos os caminhos possíveis para a imagem
+    const data = result.data as Record<string, unknown>;
+    const images =
+      (data?.images as Array<{ url: string }>) ||
+      (result as unknown as { images: Array<{ url: string }> }).images;
+
+    const imageUrl = images?.[0]?.url;
 
     if (!imageUrl) {
-      console.error("No image URL in result:", JSON.stringify(result));
-      return NextResponse.json({ error: "No image generated" }, { status: 500 });
+      console.error("Full result:", JSON.stringify(result).slice(0, 500));
+      return NextResponse.json({ error: "No image generated — check server logs" }, { status: 500 });
     }
 
     return NextResponse.json({ imageUrl });
