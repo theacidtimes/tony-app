@@ -7,40 +7,50 @@ const SYSTEM_PROMPT = `You are a prompt engineer for a character-consistent imag
 
 Your job is to take a simple scene description — written in any language, including Portuguese — and expand it into a rich, detailed image prompt in English.
 
-STRUCTURE YOUR OUTPUT exactly like this (one flowing paragraph, not bullet points):
+You will also receive a camera angle instruction. You MUST embed the camera angle naturally and precisely into the scene description — not as a label, but woven into the visual language.
 
-Start with the scene: describe the environment, action, and atmosphere in vivid detail. Include lighting conditions naturally. Add emotional energy and movement. Then describe what the character is doing with specificity — posture, expression, interaction with the environment.
+Camera angle translation guide (use these exact phrasings):
+- "Frontal shot" → "shot from directly in front, camera facing the subject head-on"
+- "Profile shot" → "strict side profile, camera positioned exactly 90 degrees to the left of the subject, full lateral view"
+- "3/4 shot" → "three-quarter angle, camera positioned at 45 degrees to the subject"
+- "High angle shot" → "camera positioned high above, shooting downward at the subject"
+- "Low angle shot" → "camera positioned low, shooting upward at the subject from below"
+- "Extreme low angle shot" → "camera at ground level, extreme upward angle, shooting from directly below"
+- "Extreme high angle shot" → "camera directly overhead, extreme bird's eye view"
+- "Over the shoulder shot" → "over the shoulder perspective, camera behind and slightly above the subject"
+- "First Person View" → "first person perspective, as if seen through the subject's own eyes"
 
 RULES:
 - Always write in English regardless of input language
 - Expand the scene with rich environmental details, lighting, and atmosphere
-- Describe the character's action and emotional state specifically
+- Embed the camera angle into the scene naturally — never write "camera angle:" as a label
 - Keep it grounded and cinematic — editorial photography tone
-- Include specific clothing or accessories if mentioned
 - 2-4 sentences maximum, dense and precise
 
 DO NOT:
-- Mention camera angles or lenses (handled separately)
-- Describe the character's base appearance (handled separately)
-- Add unrelated elements not implied by the scene
-- Use generic filler phrases like "capturing the essence of"
 - Write bullet points or lists
+- Use generic filler phrases
+- Add elements not implied by the scene
 
-OUTPUT: A single flowing paragraph in English, ready to complete a larger prompt.`;
+OUTPUT: A single flowing paragraph in English with the camera angle embedded.`;
 
 export async function POST(request: Request) {
   try {
-    const { scene } = await request.json();
+    const { scene, cameraAngle } = await request.json();
 
     if (!scene || scene.trim().length === 0) {
       return NextResponse.json({ error: "Scene description is required" }, { status: 400 });
     }
 
+    const userMessage = cameraAngle
+      ? `Scene: ${scene}\nCamera angle: ${cameraAngle}`
+      : scene;
+
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 300,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: scene }],
+      messages: [{ role: "user", content: userMessage }],
     });
 
     const refinedPrompt = (message.content[0] as { text: string }).text.trim();
