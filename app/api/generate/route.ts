@@ -5,9 +5,13 @@ fal.config({ credentials: process.env.FAL_KEY });
 
 const LORA_URL = "https://v3b.fal.media/files/b/0a98d078/VSndQkT1DNNOV_vYNcUZC_pytorch_lora_weights.safetensors";
 
-const CHARACTER = "an anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow eyes, athletic bipedal build";
-const BEHAVIOR = "confident energetic expression, natural posture, physically believable movement, no stiffness";
-const RULES = "hyper-realistic editorial photography, soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure";
+const CHARACTER = "an anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build";
+
+const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
+
+const CHARACTER_LOCK = "CHARACTER LOCK: Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency.";
+
+const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
 const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
   "1:1": { width: 1024, height: 1024 },
@@ -26,7 +30,14 @@ export async function POST(request: Request) {
 
     const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
 
-    const fullPrompt = `${CHARACTER}, ${refinedPrompt}. ${cameraAngle ? `Camera: ${cameraAngle}.` : ""} ${BEHAVIOR}. ${RULES}.`;
+    // Estrutura próxima ao workflow do Weave
+    const fullPrompt = [
+      `The scene: ${CHARACTER}, ${refinedPrompt}`,
+      cameraAngle ? `The camera angle: ${cameraAngle}.` : "",
+      BEHAVIOR,
+      CHARACTER_LOCK,
+      RULES,
+    ].filter(Boolean).join(" ");
 
     const result = await fal.subscribe("fal-ai/flux-2/lora", {
       input: {
