@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a prompt engineer for a character-consistent image generation system. Your job is to take a simple scene description and refine it into a precise, focused image prompt.
+const SYSTEM_PROMPT = `You are a prompt engineer for a character-consistent image generation system. Your job is to take a simple scene description — written in any language, including Portuguese — and refine it into a precise, focused image prompt.
 
 RULES:
 - Preserve the original meaning and tone
@@ -19,7 +19,7 @@ DO NOT:
 - Write long outputs
 
 OUTPUT FORMAT:
-Return a single short paragraph in English, ready to be used as an image prompt. No preamble, no explanation, just the prompt.`;
+Always return a single short paragraph in English, ready to be used as an image prompt. No preamble, no explanation, just the prompt. Always output in English regardless of the input language.`;
 
 export async function POST(request: Request) {
   try {
