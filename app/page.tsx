@@ -175,7 +175,7 @@ export default function Home() {
               className="input-field"
               rows={5}
               maxLength={MAX_CHARS}
-              placeholder="Toni playing basketball at sunset, crowd cheering..."
+              placeholder="Toni jogando basquete ao pôr do sol, torcida ao redor..."
               value={scene}
               onChange={(e) => setScene(e.target.value)}
             />
