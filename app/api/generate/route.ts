@@ -9,7 +9,7 @@ const LORA_FLUX2_URL = "https://v3b.fal.media/files/b/0a98e908/VudC9BEhFrinJbfn9
 const CHARACTER = "TONI_TIGER character, an anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build";
 const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
 const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency.";
-const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
+const RULES = "Style: hyper-realistic cinematic editorial photography. Natural directional light, soft shadow falloff, subtle contrast, realistic depth, slight film grain, balanced exposure. No CGI, no cartoon, no stylization.";
 
 const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
   "1:1": { width: 1024, height: 1024 },
