@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const CAMERA_ANGLES = [
-  "Frontal shot",
-  "Profile shot",
-  "3/4 shot",
-  "High angle shot",
-  "Low angle shot",
-  "Extreme low angle shot",
-  "Extreme high angle shot",
-  "Over the shoulder shot",
-  "First Person View",
+  "Frontal shot", "Profile shot", "3/4 shot", "High angle shot",
+  "Low angle shot", "Extreme low angle shot", "Extreme high angle shot",
+  "Over the shoulder shot", "First Person View",
 ];
 
 const ASPECT_RATIOS = [
@@ -22,6 +16,7 @@ const ASPECT_RATIOS = [
 ];
 
 const MAX_CHARS = 200;
+const TRIGGER_REGEX = /\b(toni|tony)\b/gi;
 
 interface Generation {
   id: string;
@@ -34,18 +29,33 @@ export default function Home() {
   const [scene, setScene] = useState("");
   const [cameraAngle, setCameraAngle] = useState("Frontal shot");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [selected, setSelected] = useState<Generation | null>(null);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  const hasTrigger = TRIGGER_REGEX.test(scene);
+  TRIGGER_REGEX.lastIndex = 0;
+
+  const syncScroll = () => {
+    if (textareaRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = textareaRef.current.scrollTop;
+      backdropRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  };
+
+  const getHighlightedHTML = (text: string) => {
+    return text.replace(/\b(toni|tony)\b/gi, '<mark class="toni-mark">$1</mark>') + " ";
+  };
+
   const handleGenerate = async () => {
     if (!scene.trim()) return;
     setIsLoading(true);
     setError(null);
-    setImageUrl(null);
 
     try {
       setLoadingStep("Refining scene...");
@@ -73,7 +83,6 @@ export default function Home() {
         aspectRatio,
       };
 
-      setImageUrl(generateData.imageUrl);
       setGenerations((prev) => [newGen, ...prev]);
       setSelected(newGen);
     } catch (err) {
@@ -97,18 +106,10 @@ export default function Home() {
 
   const handleDelete = (id: string) => {
     setGenerations((prev) => prev.filter((g) => g.id !== id));
-    if (selected?.id === id) {
-      setSelected(null);
-      setImageUrl(null);
-    }
+    if (selected?.id === id) setSelected(null);
   };
 
-  const handleSelect = (gen: Generation) => {
-    setSelected(gen);
-    setImageUrl(gen.url);
-  };
-
-  const activeImage = selected?.url || imageUrl;
+  const activeImage = selected?.url || null;
 
   return (
     <main>
@@ -116,35 +117,15 @@ export default function Home() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --bg: #0c0c0c;
-          --surface: #111111;
-          --surface-2: #161616;
-          --surface-3: #1a1a1a;
-          --border: rgba(255,255,255,0.06);
-          --border-hover: rgba(255,255,255,0.12);
-          --text: #e8e8e8;
-          --text-dim: rgba(232,232,232,0.35);
-          --text-dimmer: rgba(232,232,232,0.15);
-          --accent: #FF6B00;
-          --accent-dim: rgba(255,107,0,0.12);
-          --green: #2DCA72;
-          --green-dim: rgba(45,202,114,0.1);
-          --mono: 'Syne Mono', monospace;
-          --sans: 'Syne', sans-serif;
+          --bg: #0c0c0c; --surface: #111111; --surface-2: #161616;
+          --border: rgba(255,255,255,0.06); --border-hover: rgba(255,255,255,0.12);
+          --text: #e8e8e8; --text-dim: rgba(232,232,232,0.35); --text-dimmer: rgba(232,232,232,0.15);
+          --accent: #FF6B00; --accent-dim: rgba(255,107,0,0.12);
+          --green: #2DCA72; --green-dim: rgba(45,202,114,0.08); --green-border: rgba(45,202,114,0.25);
+          --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
-        html, body {
-          background: var(--bg);
-          color: var(--text);
-          font-family: var(--sans);
-          font-weight: 300;
-          -webkit-font-smoothing: antialiased;
-          min-height: 100vh;
-        }
-        .header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 28px 48px;
-          border-bottom: 1px solid var(--border);
-        }
+        html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 28px 48px; border-bottom: 1px solid var(--border); }
         .logo { display: flex; align-items: baseline; gap: 10px; }
         .logo-name { font-family: var(--sans); font-weight: 400; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; }
         .logo-sep { width: 1px; height: 12px; background: var(--border-hover); display: inline-block; vertical-align: middle; }
@@ -153,68 +134,40 @@ export default function Home() {
         .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
         .status-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
-        .layout {
-          display: grid;
-          grid-template-columns: 360px 1fr;
-          min-height: calc(100vh - 73px);
-        }
-        .panel-left {
-          border-right: 1px solid var(--border);
-          padding: 36px 36px;
-          display: flex; flex-direction: column; gap: 32px;
-          overflow-y: auto;
-        }
-        .trigger-block { display: flex; flex-direction: column; gap: 12px; }
+        .layout { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 73px); }
+        .panel-left { border-right: 1px solid var(--border); padding: 36px; display: flex; flex-direction: column; gap: 28px; overflow-y: auto; }
         .field-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dimmer); }
-        .trigger-pill {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: var(--green-dim); border: 1px solid rgba(45,202,114,0.2);
-          border-radius: 2px; padding: 5px 12px; width: fit-content;
-        }
-        .trigger-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
-        .trigger-word { font-family: var(--mono); font-size: 11px; color: var(--green); letter-spacing: 0.12em; }
-        .trigger-hint { font-size: 11px; color: var(--text-dim); line-height: 1.7; font-weight: 300; }
-        .trigger-hint em { font-style: normal; color: var(--green); font-family: var(--mono); }
-        .divider { height: 1px; background: var(--border); }
         .field-block { display: flex; flex-direction: column; gap: 10px; }
         .field-header { display: flex; justify-content: space-between; align-items: center; }
+        .divider { height: 1px; background: var(--border); }
+        .trigger-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 2px; transition: border-color 0.3s, background 0.3s; }
+        .trigger-status.connected { border-color: var(--green-border); background: var(--green-dim); }
+        .trigger-indicator { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dimmer); transition: background 0.3s; flex-shrink: 0; }
+        .trigger-status.connected .trigger-indicator { background: var(--green); box-shadow: 0 0 6px rgba(45,202,114,0.5); }
+        .trigger-text { font-family: var(--mono); font-size: 10px; color: var(--text-dimmer); letter-spacing: 0.08em; transition: color 0.3s; }
+        .trigger-status.connected .trigger-text { color: var(--green); }
+        .trigger-tag { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.06em; transition: color 0.3s; }
+        .trigger-status.connected .trigger-tag { color: rgba(45,202,114,0.6); }
+        .scene-wrap { position: relative; border: 1px solid var(--border); border-radius: 2px; transition: border-color 0.2s; background: var(--surface); }
+        .scene-wrap:focus-within { border-color: var(--border-hover); }
+        .scene-wrap.has-trigger { border-color: var(--green-border); }
+        .scene-backdrop { position: absolute; inset: 0; padding: 12px 14px; font-family: var(--sans); font-size: 13px; font-weight: 300; line-height: 1.7; color: transparent; white-space: pre-wrap; word-wrap: break-word; overflow: hidden; pointer-events: none; border-radius: 2px; }
+        .toni-mark { background: transparent; color: transparent; border-radius: 3px; outline: 1.5px solid var(--green); box-shadow: 0 0 8px rgba(45,202,114,0.2); padding: 0 1px; }
+        .scene-textarea { position: relative; z-index: 1; background: transparent; border: none; color: var(--text); font-family: var(--sans); font-size: 13px; font-weight: 300; line-height: 1.7; padding: 12px 14px; width: 100%; resize: none; outline: none; caret-color: var(--accent); }
+        .scene-textarea::placeholder { color: var(--text-dimmer); }
         .char-counter { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); }
         .char-counter.warn { color: var(--accent); }
-        textarea {
-          background: var(--surface); border: 1px solid var(--border);
-          color: var(--text); font-family: var(--sans); font-size: 13px;
-          font-weight: 300; line-height: 1.7; padding: 12px 14px;
-          width: 100%; resize: none; outline: none; border-radius: 2px;
-          transition: border-color 0.2s;
-        }
-        textarea::placeholder { color: var(--text-dimmer); }
-        textarea:focus { border-color: var(--border-hover); }
+        .hint-text { font-size: 11px; color: var(--text-dimmer); line-height: 1.6; }
+        .hint-text em { font-style: normal; color: rgba(45,202,114,0.6); font-family: var(--mono); }
         .select-wrap { position: relative; }
-        select {
-          background: var(--surface); border: 1px solid var(--border);
-          color: var(--text); font-family: var(--sans); font-size: 12px;
-          font-weight: 300; padding: 10px 36px 10px 14px; width: 100%;
-          outline: none; cursor: pointer; appearance: none; border-radius: 2px;
-          transition: border-color 0.2s;
-        }
+        select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 12px; font-weight: 300; padding: 10px 36px 10px 14px; width: 100%; outline: none; cursor: pointer; appearance: none; border-radius: 2px; transition: border-color 0.2s; }
         select:focus { border-color: var(--border-hover); }
         .select-arrow { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: var(--text-dimmer); pointer-events: none; font-size: 9px; }
         .ratio-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .ratio-btn {
-          background: var(--surface); border: 1px solid var(--border);
-          color: var(--text-dim); font-family: var(--mono); font-size: 10px;
-          letter-spacing: 0.08em; padding: 9px 0; cursor: pointer;
-          border-radius: 2px; transition: all 0.15s; text-align: center;
-        }
+        .ratio-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 9px 0; cursor: pointer; border-radius: 2px; transition: all 0.15s; text-align: center; }
         .ratio-btn:hover { border-color: var(--border-hover); color: var(--text); }
         .ratio-btn.active { border-color: rgba(255,107,0,0.4); color: var(--accent); background: var(--accent-dim); }
-        .generate-btn {
-          background: var(--accent); border: none; color: #000;
-          font-family: var(--sans); font-size: 12px; font-weight: 500;
-          letter-spacing: 0.15em; text-transform: uppercase; padding: 13px;
-          width: 100%; cursor: pointer; border-radius: 2px;
-          transition: opacity 0.15s, transform 0.1s;
-        }
+        .generate-btn { background: var(--accent); border: none; color: #000; font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; padding: 13px; width: 100%; cursor: pointer; border-radius: 2px; transition: opacity 0.15s, transform 0.1s; }
         .generate-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
         .generate-btn:disabled { background: var(--surface-2); color: var(--text-dimmer); cursor: not-allowed; transform: none; }
         .progress-wrap { height: 1px; background: var(--border); overflow: hidden; }
@@ -224,29 +177,14 @@ export default function Home() {
         .error-msg { font-family: var(--mono); font-size: 10px; color: #ff5555; }
         .panel-footer { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); line-height: 1.8; letter-spacing: 0.06em; }
         .panel-right { display: flex; flex-direction: column; }
-        .output-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 14px 36px; border-bottom: 1px solid var(--border);
-        }
+        .output-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 36px; border-bottom: 1px solid var(--border); }
         .output-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
         .output-actions { display: flex; align-items: center; gap: 8px; }
-        .icon-btn {
-          background: transparent; border: 1px solid var(--border);
-          color: var(--text-dim); font-family: var(--mono); font-size: 10px;
-          letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer;
-          border-radius: 2px; transition: all 0.15s;
-        }
+        .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
         .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
         .icon-btn.danger:hover { border-color: rgba(255,85,85,0.4); color: #ff5555; }
-        .output-canvas {
-          flex: 1; display: flex; align-items: center; justify-content: center;
-          position: relative; overflow: hidden; min-height: 400px;
-        }
-        .output-canvas::before {
-          content: ''; position: absolute; inset: 0;
-          background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-          background-size: 40px 40px; opacity: 0.4;
-        }
+        .output-canvas { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; min-height: 400px; }
+        .output-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.4; }
         .output-empty { position: relative; z-index: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .output-crosshair { width: 28px; height: 28px; position: relative; opacity: 0.12; }
         .output-crosshair::before, .output-crosshair::after { content: ''; position: absolute; background: var(--text); }
@@ -267,21 +205,11 @@ export default function Home() {
         .gallery-grid::-webkit-scrollbar { height: 2px; }
         .gallery-grid::-webkit-scrollbar-track { background: var(--border); }
         .gallery-grid::-webkit-scrollbar-thumb { background: var(--border-hover); }
-        .thumb-wrap {
-          position: relative; flex-shrink: 0; cursor: pointer;
-          border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
-          width: 80px; height: 80px; transition: border-color 0.15s;
-        }
+        .thumb-wrap { position: relative; flex-shrink: 0; cursor: pointer; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; width: 80px; height: 80px; transition: border-color 0.15s; }
         .thumb-wrap:hover { border-color: var(--border-hover); }
         .thumb-wrap.active { border-color: var(--accent); }
         .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .thumb-delete {
-          position: absolute; top: 3px; right: 3px;
-          background: rgba(0,0,0,0.7); border: none; color: var(--text-dim);
-          width: 16px; height: 16px; border-radius: 1px; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 8px; opacity: 0; transition: opacity 0.15s;
-        }
+        .thumb-delete { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.7); border: none; color: var(--text-dim); width: 16px; height: 16px; border-radius: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; opacity: 0; transition: opacity 0.15s; }
         .thumb-wrap:hover .thumb-delete { opacity: 1; }
         .thumb-delete:hover { color: #ff5555; }
       `}</style>
@@ -300,16 +228,13 @@ export default function Home() {
 
       <div className="layout">
         <aside className="panel-left">
-          <div className="trigger-block">
-            <span className="field-label">Character</span>
-            <div className="trigger-pill">
-              <span className="trigger-dot" />
-              <span className="trigger-word">toni</span>
-            </div>
-            <p className="trigger-hint">
-              Use <em>toni</em> in your scene to place the character.
-              Ex: <em>toni</em> surfando uma onda gigante ao amanhecer.
-            </p>
+
+          <div className={`trigger-status ${hasTrigger ? "connected" : ""}`}>
+            <span className="trigger-indicator" />
+            <span className="trigger-text">
+              {hasTrigger ? "trigger connected" : "trigger not detected"}
+            </span>
+            <span className="trigger-tag">TONI_TIGER</span>
           </div>
 
           <div className="divider" />
@@ -321,13 +246,28 @@ export default function Home() {
                 {scene.length}/{MAX_CHARS}
               </span>
             </div>
-            <textarea
-              rows={5}
-              maxLength={MAX_CHARS}
-              placeholder="toni jogando basquete ao pôr do sol..."
-              value={scene}
-              onChange={(e) => setScene(e.target.value)}
-            />
+
+            <div className={`scene-wrap ${hasTrigger ? "has-trigger" : ""}`}>
+              <div
+                ref={backdropRef}
+                className="scene-backdrop"
+                dangerouslySetInnerHTML={{ __html: getHighlightedHTML(scene) }}
+              />
+              <textarea
+                ref={textareaRef}
+                className="scene-textarea"
+                rows={5}
+                maxLength={MAX_CHARS}
+                placeholder="toni jogando basquete ao pôr do sol..."
+                value={scene}
+                onChange={(e) => setScene(e.target.value)}
+                onScroll={syncScroll}
+              />
+            </div>
+
+            <p className="hint-text">
+              Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.
+            </p>
           </div>
 
           <div className="field-block">
@@ -417,14 +357,13 @@ export default function Home() {
                   <div
                     key={gen.id}
                     className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`}
-                    onClick={() => handleSelect(gen)}
+                    onClick={() => setSelected(gen)}
                     title={gen.scene}
                   >
                     <img src={gen.url} alt={gen.scene} />
                     <button
                       className="thumb-delete"
                       onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}
-                      title="Remove"
                     >✕</button>
                   </div>
                 ))}
