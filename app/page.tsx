@@ -15,6 +15,11 @@ const ASPECT_RATIOS = [
   { label: "16:9", value: "16:9" },
 ];
 
+const MODELS = [
+  { label: "Flux 1 — Fast", value: "flux1" },
+  { label: "Flux 2 — Quality", value: "flux2" },
+];
+
 const MAX_CHARS = 200;
 const TRIGGER_REGEX = /\b(toni|tony)\b/gi;
 
@@ -23,12 +28,14 @@ interface Generation {
   url: string;
   scene: string;
   aspectRatio: string;
+  model: string;
 }
 
 export default function Home() {
   const [scene, setScene] = useState("");
   const [cameraAngle, setCameraAngle] = useState("Frontal shot");
   const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [model, setModel] = useState("flux2");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +78,7 @@ export default function Home() {
       const generateRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, cameraAngle, aspectRatio }),
+        body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, cameraAngle, aspectRatio, model }),
       });
       const generateData = await generateRes.json();
       if (!generateRes.ok) throw new Error(generateData.error);
@@ -81,6 +88,7 @@ export default function Home() {
         url: generateData.imageUrl,
         scene: scene.slice(0, 60) + (scene.length > 60 ? "..." : ""),
         aspectRatio,
+        model,
       };
 
       setGenerations((prev) => [newGen, ...prev]);
@@ -117,15 +125,25 @@ export default function Home() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --bg: #0c0c0c; --surface: #111111; --surface-2: #161616;
-          --border: rgba(255,255,255,0.06); --border-hover: rgba(255,255,255,0.12);
-          --text: #e8e8e8; --text-dim: rgba(232,232,232,0.35); --text-dimmer: rgba(232,232,232,0.15);
-          --accent: #FF6B00; --accent-dim: rgba(255,107,0,0.12);
-          --green: #2DCA72; --green-dim: rgba(45,202,114,0.08); --green-border: rgba(45,202,114,0.25);
-          --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
+          --bg: #141414;
+          --surface: #1c1c1c;
+          --surface-2: #222222;
+          --surface-3: #282828;
+          --border: rgba(255,255,255,0.09);
+          --border-hover: rgba(255,255,255,0.18);
+          --text: #ebebeb;
+          --text-dim: rgba(235,235,235,0.45);
+          --text-dimmer: rgba(235,235,235,0.22);
+          --accent: #FF6B00;
+          --accent-dim: rgba(255,107,0,0.12);
+          --green: #2DCA72;
+          --green-dim: rgba(45,202,114,0.1);
+          --green-border: rgba(45,202,114,0.3);
+          --mono: 'Syne Mono', monospace;
+          --sans: 'Syne', sans-serif;
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 28px 48px; border-bottom: 1px solid var(--border); }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--border); }
         .logo { display: flex; align-items: baseline; gap: 10px; }
         .logo-name { font-family: var(--sans); font-weight: 400; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; }
         .logo-sep { width: 1px; height: 12px; background: var(--border-hover); display: inline-block; vertical-align: middle; }
@@ -134,59 +152,63 @@ export default function Home() {
         .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
         .status-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
-        .layout { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 73px); }
-        .panel-left { border-right: 1px solid var(--border); padding: 36px; display: flex; flex-direction: column; gap: 28px; overflow-y: auto; }
+        .layout { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 69px); }
+        .panel-left { border-right: 1px solid var(--border); padding: 32px; display: flex; flex-direction: column; gap: 26px; overflow-y: auto; }
         .field-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dimmer); }
-        .field-block { display: flex; flex-direction: column; gap: 10px; }
+        .field-block { display: flex; flex-direction: column; gap: 9px; }
         .field-header { display: flex; justify-content: space-between; align-items: center; }
         .divider { height: 1px; background: var(--border); }
-        .trigger-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 2px; transition: border-color 0.3s, background 0.3s; }
+        .trigger-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 2px; transition: border-color 0.3s, background 0.3s; background: var(--surface); }
         .trigger-status.connected { border-color: var(--green-border); background: var(--green-dim); }
         .trigger-indicator { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dimmer); transition: background 0.3s; flex-shrink: 0; }
         .trigger-status.connected .trigger-indicator { background: var(--green); box-shadow: 0 0 6px rgba(45,202,114,0.5); }
         .trigger-text { font-family: var(--mono); font-size: 10px; color: var(--text-dimmer); letter-spacing: 0.08em; transition: color 0.3s; }
         .trigger-status.connected .trigger-text { color: var(--green); }
         .trigger-tag { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.06em; transition: color 0.3s; }
-        .trigger-status.connected .trigger-tag { color: rgba(45,202,114,0.6); }
+        .trigger-status.connected .trigger-tag { color: rgba(45,202,114,0.7); }
         .scene-wrap { position: relative; border: 1px solid var(--border); border-radius: 2px; transition: border-color 0.2s; background: var(--surface); }
         .scene-wrap:focus-within { border-color: var(--border-hover); }
         .scene-wrap.has-trigger { border-color: var(--green-border); }
         .scene-backdrop { position: absolute; inset: 0; padding: 12px 14px; font-family: var(--sans); font-size: 13px; font-weight: 300; line-height: 1.7; color: transparent; white-space: pre-wrap; word-wrap: break-word; overflow: hidden; pointer-events: none; border-radius: 2px; }
-        .toni-mark { background: transparent; color: transparent; border-radius: 3px; outline: 1.5px solid var(--green); box-shadow: 0 0 8px rgba(45,202,114,0.2); padding: 0 1px; }
+        .toni-mark { background: transparent; color: transparent; border-radius: 3px; outline: 1.5px solid var(--green); box-shadow: 0 0 8px rgba(45,202,114,0.15); padding: 0 1px; }
         .scene-textarea { position: relative; z-index: 1; background: transparent; border: none; color: var(--text); font-family: var(--sans); font-size: 13px; font-weight: 300; line-height: 1.7; padding: 12px 14px; width: 100%; resize: none; outline: none; caret-color: var(--accent); }
         .scene-textarea::placeholder { color: var(--text-dimmer); }
         .char-counter { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); }
         .char-counter.warn { color: var(--accent); }
         .hint-text { font-size: 11px; color: var(--text-dimmer); line-height: 1.6; }
-        .hint-text em { font-style: normal; color: rgba(45,202,114,0.6); font-family: var(--mono); }
+        .hint-text em { font-style: normal; color: rgba(45,202,114,0.7); font-family: var(--mono); }
         .select-wrap { position: relative; }
         select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 12px; font-weight: 300; padding: 10px 36px 10px 14px; width: 100%; outline: none; cursor: pointer; appearance: none; border-radius: 2px; transition: border-color 0.2s; }
         select:focus { border-color: var(--border-hover); }
         .select-arrow { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: var(--text-dimmer); pointer-events: none; font-size: 9px; }
+        .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .model-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; padding: 10px 0; cursor: pointer; border-radius: 2px; transition: all 0.15s; text-align: center; line-height: 1.4; }
+        .model-btn:hover { border-color: var(--border-hover); color: var(--text); }
+        .model-btn.active { border-color: rgba(255,107,0,0.45); color: var(--accent); background: var(--accent-dim); }
         .ratio-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .ratio-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 9px 0; cursor: pointer; border-radius: 2px; transition: all 0.15s; text-align: center; }
         .ratio-btn:hover { border-color: var(--border-hover); color: var(--text); }
-        .ratio-btn.active { border-color: rgba(255,107,0,0.4); color: var(--accent); background: var(--accent-dim); }
+        .ratio-btn.active { border-color: rgba(255,107,0,0.45); color: var(--accent); background: var(--accent-dim); }
         .generate-btn { background: var(--accent); border: none; color: #000; font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; padding: 13px; width: 100%; cursor: pointer; border-radius: 2px; transition: opacity 0.15s, transform 0.1s; }
         .generate-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-        .generate-btn:disabled { background: var(--surface-2); color: var(--text-dimmer); cursor: not-allowed; transform: none; }
+        .generate-btn:disabled { background: var(--surface-3); color: var(--text-dimmer); cursor: not-allowed; transform: none; }
         .progress-wrap { height: 1px; background: var(--border); overflow: hidden; }
         .progress-bar { height: 100%; background: var(--accent); animation: progress 1.8s ease-in-out infinite; }
         @keyframes progress { 0% { width: 0%; margin-left: 0%; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
         .loading-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; }
-        .error-msg { font-family: var(--mono); font-size: 10px; color: #ff5555; }
+        .error-msg { font-family: var(--mono); font-size: 10px; color: #ff6b6b; }
         .panel-footer { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); line-height: 1.8; letter-spacing: 0.06em; }
         .panel-right { display: flex; flex-direction: column; }
-        .output-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 36px; border-bottom: 1px solid var(--border); }
+        .output-header { display: flex; align-items: center; justify-content: space-between; padding: 13px 36px; border-bottom: 1px solid var(--border); }
         .output-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
         .output-actions { display: flex; align-items: center; gap: 8px; }
         .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
         .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
-        .icon-btn.danger:hover { border-color: rgba(255,85,85,0.4); color: #ff5555; }
+        .icon-btn.danger:hover { border-color: rgba(255,107,107,0.4); color: #ff6b6b; }
         .output-canvas { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; min-height: 400px; }
-        .output-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.4; }
+        .output-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
         .output-empty { position: relative; z-index: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-        .output-crosshair { width: 28px; height: 28px; position: relative; opacity: 0.12; }
+        .output-crosshair { width: 28px; height: 28px; position: relative; opacity: 0.15; }
         .output-crosshair::before, .output-crosshair::after { content: ''; position: absolute; background: var(--text); }
         .output-crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
         .output-crosshair::after { height: 1px; width: 100%; top: 50%; left: 0; }
@@ -197,8 +219,8 @@ export default function Home() {
         .loading-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; }
         .loading-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); margin-top: -10px; }
         .output-image { position: relative; z-index: 1; max-width: 100%; max-height: 500px; display: block; object-fit: contain; }
-        .gallery-section { border-top: 1px solid var(--border); padding: 16px 36px 20px; }
-        .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .gallery-section { border-top: 1px solid var(--border); padding: 14px 36px 18px; }
+        .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
         .gallery-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
         .gallery-count { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); }
         .gallery-grid { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
@@ -209,9 +231,10 @@ export default function Home() {
         .thumb-wrap:hover { border-color: var(--border-hover); }
         .thumb-wrap.active { border-color: var(--accent); }
         .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .thumb-delete { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.7); border: none; color: var(--text-dim); width: 16px; height: 16px; border-radius: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; opacity: 0; transition: opacity 0.15s; }
+        .thumb-badge { position: absolute; bottom: 3px; left: 3px; font-family: var(--mono); font-size: 7px; background: rgba(0,0,0,0.75); color: rgba(255,255,255,0.6); padding: 1px 4px; border-radius: 1px; letter-spacing: 0.04em; }
+        .thumb-delete { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.7); border: none; color: rgba(255,255,255,0.4); width: 16px; height: 16px; border-radius: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; opacity: 0; transition: opacity 0.15s; }
         .thumb-wrap:hover .thumb-delete { opacity: 1; }
-        .thumb-delete:hover { color: #ff5555; }
+        .thumb-delete:hover { color: #ff6b6b; }
       `}</style>
 
       <header className="header">
@@ -228,12 +251,9 @@ export default function Home() {
 
       <div className="layout">
         <aside className="panel-left">
-
           <div className={`trigger-status ${hasTrigger ? "connected" : ""}`}>
             <span className="trigger-indicator" />
-            <span className="trigger-text">
-              {hasTrigger ? "trigger connected" : "trigger not detected"}
-            </span>
+            <span className="trigger-text">{hasTrigger ? "trigger connected" : "trigger not detected"}</span>
             <span className="trigger-tag">TONI_TIGER</span>
           </div>
 
@@ -242,32 +262,22 @@ export default function Home() {
           <div className="field-block">
             <div className="field-header">
               <span className="field-label">Scene</span>
-              <span className={`char-counter ${scene.length > MAX_CHARS * 0.85 ? "warn" : ""}`}>
-                {scene.length}/{MAX_CHARS}
-              </span>
+              <span className={`char-counter ${scene.length > MAX_CHARS * 0.85 ? "warn" : ""}`}>{scene.length}/{MAX_CHARS}</span>
             </div>
-
             <div className={`scene-wrap ${hasTrigger ? "has-trigger" : ""}`}>
-              <div
-                ref={backdropRef}
-                className="scene-backdrop"
-                dangerouslySetInnerHTML={{ __html: getHighlightedHTML(scene) }}
-              />
-              <textarea
-                ref={textareaRef}
-                className="scene-textarea"
-                rows={5}
-                maxLength={MAX_CHARS}
-                placeholder="toni jogando basquete ao pôr do sol..."
-                value={scene}
-                onChange={(e) => setScene(e.target.value)}
-                onScroll={syncScroll}
-              />
+              <div ref={backdropRef} className="scene-backdrop" dangerouslySetInnerHTML={{ __html: getHighlightedHTML(scene) }} />
+              <textarea ref={textareaRef} className="scene-textarea" rows={5} maxLength={MAX_CHARS} placeholder="toni jogando basquete ao pôr do sol..." value={scene} onChange={(e) => setScene(e.target.value)} onScroll={syncScroll} />
             </div>
+            <p className="hint-text">Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.</p>
+          </div>
 
-            <p className="hint-text">
-              Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.
-            </p>
+          <div className="field-block">
+            <span className="field-label">Model</span>
+            <div className="model-grid">
+              {MODELS.map((m) => (
+                <button key={m.value} className={`model-btn ${model === m.value ? "active" : ""}`} onClick={() => setModel(m.value)}>{m.label}</button>
+              ))}
+            </div>
           </div>
 
           <div className="field-block">
@@ -284,13 +294,7 @@ export default function Home() {
             <span className="field-label">Format</span>
             <div className="ratio-grid">
               {ASPECT_RATIOS.map((r) => (
-                <button
-                  key={r.value}
-                  className={`ratio-btn ${aspectRatio === r.value ? "active" : ""}`}
-                  onClick={() => setAspectRatio(r.value)}
-                >
-                  {r.label}
-                </button>
+                <button key={r.value} className={`ratio-btn ${aspectRatio === r.value ? "active" : ""}`} onClick={() => setAspectRatio(r.value)}>{r.label}</button>
               ))}
             </div>
           </div>
@@ -308,10 +312,7 @@ export default function Home() {
             {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
           </div>
 
-          <p className="panel-footer">
-            Scene descriptions are refined automatically.<br />
-            Character rules applied behind the scenes.
-          </p>
+          <p className="panel-footer">Scene descriptions are refined automatically.<br />Character rules applied behind the scenes.</p>
         </aside>
 
         <section className="panel-right">
@@ -320,9 +321,7 @@ export default function Home() {
             {activeImage && (
               <div className="output-actions">
                 <button className="icon-btn" onClick={() => handleDownload(activeImage)}>↓ download</button>
-                {selected && (
-                  <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>
-                )}
+                {selected && <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>}
               </div>
             )}
           </div>
@@ -341,9 +340,7 @@ export default function Home() {
                 <span className="loading-sub">this takes about 30–60 seconds</span>
               </div>
             )}
-            {activeImage && !isLoading && (
-              <img className="output-image" src={activeImage} alt="Generated Toni" />
-            )}
+            {activeImage && !isLoading && <img className="output-image" src={activeImage} alt="Generated Toni" />}
           </div>
 
           {generations.length > 0 && (
@@ -354,17 +351,10 @@ export default function Home() {
               </div>
               <div className="gallery-grid">
                 {generations.map((gen) => (
-                  <div
-                    key={gen.id}
-                    className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`}
-                    onClick={() => setSelected(gen)}
-                    title={gen.scene}
-                  >
+                  <div key={gen.id} className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`} onClick={() => setSelected(gen)} title={gen.scene}>
                     <img src={gen.url} alt={gen.scene} />
-                    <button
-                      className="thumb-delete"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}
-                    >✕</button>
+                    <span className="thumb-badge">{gen.model === "flux2" ? "F2" : "F1"}</span>
+                    <button className="thumb-delete" onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}>✕</button>
                   </div>
                 ))}
               </div>
