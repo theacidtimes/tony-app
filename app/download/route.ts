@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      return NextResponse.json({ error: "Failed to fetch image" }, { status: 500 });
+      return NextResponse.json({ error: `Failed to fetch: ${imageResponse.status}` }, { status: 500 });
     }
 
     const arrayBuffer = await imageResponse.arrayBuffer();
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Error downloading image:", message);
+    console.error("Download error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
