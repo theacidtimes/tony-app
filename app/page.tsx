@@ -132,7 +132,7 @@ export default function Home() {
   return (
     <main>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=Libre+Caslon+Text:ital,wght@0,400;1,400&family=IBM+Plex+Sans:wght@300;400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg: #141414; --surface: #1c1c1c; --surface-2: #222222; --surface-3: #282828;
@@ -144,10 +144,11 @@ export default function Home() {
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
         .header { display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--border); }
-        .logo { display: flex; align-items: baseline; gap: 10px; }
-        .logo-name { font-family: var(--sans); font-weight: 400; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; }
-        .logo-sep { width: 1px; height: 12px; background: var(--border-hover); display: inline-block; vertical-align: middle; }
-        .logo-sub { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; }
+        .acid-logo { display: flex; align-items: baseline; gap: 0; line-height: 1; }
+        .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 22px; letter-spacing: 0.02em; color: var(--text); }
+        .acid-letters .italic { font-style: italic; }
+        .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; line-height: 1; }
+        .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 14px; align-self: center; }
         .header-right { display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -238,10 +239,14 @@ export default function Home() {
       `}</style>
 
       <header className="header">
-        <div className="logo">
-          <span className="logo-name">Toni</span>
-          <span className="logo-sep" />
-          <span className="logo-sub">character studio</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="acid-logo">
+            <span className="acid-letters">
+              <span className="italic">A</span>CID
+            </span>
+            <span className="acid-tm">™</span>
+          </div>
+          <span className="acid-sub">Tony Character Studio ©</span>
         </div>
         <div className="header-right">
           <span className="status-dot" />
