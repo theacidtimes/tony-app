@@ -22,6 +22,7 @@ const MODELS = [
 
 const MAX_CHARS = 200;
 const TRIGGER_REGEX = /\b(toni|tony)\b/gi;
+const ACCESS_PASSWORD = "toni2026";
 
 interface Generation {
   id: string;
@@ -31,7 +32,56 @@ interface Generation {
   model: string;
 }
 
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  const handleSubmit = () => {
+    if (password === ACCESS_PASSWORD) {
+      onLogin();
+    } else {
+      setError(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      setTimeout(() => setError(false), 2000);
+      setPassword("");
+    }
+  };
+
+  return (
+    <div className="login-screen">
+      <div className={`login-box ${shake ? "shake" : ""}`}>
+        <div className="login-logo">
+          <span className="acid-letters">
+            <span style={{ color: "#F4A233" }}>A</span>
+            <span style={{ color: "#7EC8E3" }}>C</span>
+            <span style={{ color: "#2DCA72" }}>I</span>
+            <span style={{ color: "#E88CBF" }}>D</span>
+          </span>
+          <span className="acid-tm">™</span>
+        </div>
+        <p className="login-sub">Tony Character Studio ©</p>
+        <div className="login-field">
+          <input
+            type="password"
+            className={`login-input ${error ? "error" : ""}`}
+            placeholder="access code"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            autoFocus
+          />
+          {error && <span className="login-error">incorrect code</span>}
+        </div>
+        <button className="login-btn" onClick={handleSubmit}>Enter</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+  const [authenticated, setAuthenticated] = useState(false);
   const [scene, setScene] = useState("");
   const [cameraAngle, setCameraAngle] = useState("Frontal shot");
   const [aspectRatio, setAspectRatio] = useState("1:1");
@@ -102,15 +152,15 @@ export default function Home() {
   };
 
   const handleDownload = async (url: string) => {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = `toni-${Date.now()}.png`;
-  a.click();
-  URL.revokeObjectURL(objectUrl);
-};
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = `toni-${Date.now()}.png`;
+    a.click();
+    URL.revokeObjectURL(objectUrl);
+  };
 
   const handleDelete = (id: string) => {
     setGenerations((prev) => prev.filter((g) => g.id !== id));
@@ -133,11 +183,28 @@ export default function Home() {
           --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+        /* Login */
+        .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-box { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 52px 48px; border: 1px solid var(--border); background: var(--surface); min-width: 320px; }
+        .login-logo { display: flex; align-items: baseline; }
+        .login-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.16em; color: var(--text-dimmer); text-transform: uppercase; margin-top: -10px; }
+        .login-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .login-input { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 12px; padding: 12px 14px; width: 100%; outline: none; border-radius: 2px; letter-spacing: 0.15em; text-align: center; transition: border-color 0.2s; }
+        .login-input::placeholder { color: var(--text-dimmer); letter-spacing: 0.1em; }
+        .login-input:focus { border-color: var(--border-hover); }
+        .login-input.error { border-color: rgba(255,107,107,0.5); }
+        .login-error { font-family: var(--mono); font-size: 9px; color: #ff6b6b; letter-spacing: 0.12em; text-align: center; }
+        .login-btn { background: var(--accent); border: none; color: #000; font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; padding: 12px 40px; cursor: pointer; border-radius: 2px; transition: opacity 0.15s; width: 100%; }
+        .login-btn:hover { opacity: 0.9; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+        .shake { animation: shake 0.5s ease-in-out; }
+
+        /* App */
         .header { display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--border); }
-        .acid-logo { display: flex; align-items: baseline; gap: 0; line-height: 1; }
-        .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 22px; letter-spacing: 0.02em; color: var(--text); }
-        .acid-letters .italic { font-style: italic; }
-        .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; line-height: 1; }
+        .acid-logo { display: flex; align-items: baseline; }
+        .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 22px; letter-spacing: 0.02em; }
+        .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; }
         .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 14px; align-self: center; }
         .header-right { display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; }
@@ -228,135 +295,144 @@ export default function Home() {
         .thumb-delete:hover { color: #ff6b6b; }
       `}</style>
 
-      <header className="header">
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div className="acid-logo">
-            <span className="acid-letters">
-              <span className="italic">A</span>CID
-            </span>
-            <span className="acid-tm">™</span>
-          </div>
-          <span className="acid-sub">Tony Character Studio ©</span>
-        </div>
-        <div className="header-right">
-          <span className="status-dot" />
-          <span className="status-label">model active</span>
-        </div>
-      </header>
-
-      <div className="layout">
-        <aside className="panel-left">
-          <div className={`trigger-status ${hasTrigger ? "connected" : ""}`}>
-            <span className="trigger-indicator" />
-            <span className="trigger-text">{hasTrigger ? "trigger connected" : "trigger not detected"}</span>
-            <span className="trigger-tag">TONI_TIGER</span>
-          </div>
-
-          <div className="divider" />
-
-          <div className="field-block">
-            <div className="field-header">
-              <span className="field-label">Scene</span>
-              <span className={`char-counter ${scene.length > MAX_CHARS * 0.85 ? "warn" : ""}`}>{scene.length}/{MAX_CHARS}</span>
-            </div>
-            <div className={`scene-wrap ${hasTrigger ? "has-trigger" : ""}`}>
-              <div ref={backdropRef} className="scene-backdrop" dangerouslySetInnerHTML={{ __html: getHighlightedHTML(scene) }} />
-              <textarea ref={textareaRef} className="scene-textarea" rows={5} maxLength={MAX_CHARS} placeholder="toni jogando basquete ao pôr do sol..." value={scene} onChange={(e) => setScene(e.target.value)} onScroll={syncScroll} />
-            </div>
-            <p className="hint-text">Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.</p>
-          </div>
-
-          <div className="field-block">
-            <span className="field-label">Model</span>
-            <div className="model-grid">
-              {MODELS.map((m) => (
-                <button key={m.value} className={`model-btn ${model === m.value ? "active" : ""}`} onClick={() => setModel(m.value)}>{m.label}</button>
-              ))}
-            </div>
-          </div>
-
-          <div className="field-block">
-            <span className="field-label">Camera</span>
-            <div className="select-wrap">
-              <select value={cameraAngle} onChange={(e) => setCameraAngle(e.target.value)}>
-                {CAMERA_ANGLES.map((a) => <option key={a}>{a}</option>)}
-              </select>
-              <span className="select-arrow">▾</span>
-            </div>
-          </div>
-
-          <div className="field-block">
-            <span className="field-label">Format</span>
-            <div className="ratio-grid">
-              {ASPECT_RATIOS.map((r) => (
-                <button key={r.value} className={`ratio-btn ${aspectRatio === r.value ? "active" : ""}`} onClick={() => setAspectRatio(r.value)}>{r.label}</button>
-              ))}
-            </div>
-          </div>
-
-          <div className="field-block">
-            <button className="generate-btn" onClick={handleGenerate} disabled={isLoading || !scene.trim()}>
-              {isLoading ? loadingStep : "Generate"}
-            </button>
-            {isLoading && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-                <div className="progress-wrap"><div className="progress-bar" /></div>
-                <span className="loading-label">30–60s</span>
+      {!authenticated ? (
+        <LoginScreen onLogin={() => setAuthenticated(true)} />
+      ) : (
+        <>
+          <header className="header">
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div className="acid-logo">
+                <span className="acid-letters">
+                  <span style={{ color: "#F4A233" }}>A</span>
+                  <span style={{ color: "#7EC8E3" }}>C</span>
+                  <span style={{ color: "#2DCA72" }}>I</span>
+                  <span style={{ color: "#E88CBF" }}>D</span>
+                </span>
+                <span className="acid-tm">™</span>
               </div>
-            )}
-            {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
-          </div>
+              <span className="acid-sub">Tony Character Studio ©</span>
+            </div>
+            <div className="header-right">
+              <span className="status-dot" />
+              <span className="status-label">model active</span>
+            </div>
+          </header>
 
-          <p className="panel-footer">Scene descriptions are refined automatically.<br />Character rules applied behind the scenes.</p>
-        </aside>
+          <div className="layout">
+            <aside className="panel-left">
+              <div className={`trigger-status ${hasTrigger ? "connected" : ""}`}>
+                <span className="trigger-indicator" />
+                <span className="trigger-text">{hasTrigger ? "trigger connected" : "trigger not detected"}</span>
+                <span className="trigger-tag">TONI_TIGER</span>
+              </div>
 
-        <section className="panel-right">
-          <div className="output-header">
-            <span className="output-label">Output</span>
-            {activeImage && (
-              <div className="output-actions">
-                <button className="icon-btn" onClick={() => handleDownload(activeImage)}>↓ download</button>
-                {selected && <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>}
-              </div>
-            )}
-          </div>
+              <div className="divider" />
 
-          <div className="output-canvas">
-            {!activeImage && !isLoading && (
-              <div className="output-empty">
-                <div className="output-crosshair" />
-                <span className="output-empty-title">Awaiting scene</span>
+              <div className="field-block">
+                <div className="field-header">
+                  <span className="field-label">Scene</span>
+                  <span className={`char-counter ${scene.length > MAX_CHARS * 0.85 ? "warn" : ""}`}>{scene.length}/{MAX_CHARS}</span>
+                </div>
+                <div className={`scene-wrap ${hasTrigger ? "has-trigger" : ""}`}>
+                  <div ref={backdropRef} className="scene-backdrop" dangerouslySetInnerHTML={{ __html: getHighlightedHTML(scene) }} />
+                  <textarea ref={textareaRef} className="scene-textarea" rows={5} maxLength={MAX_CHARS} placeholder="toni jogando basquete ao pôr do sol..." value={scene} onChange={(e) => setScene(e.target.value)} onScroll={syncScroll} />
+                </div>
+                <p className="hint-text">Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.</p>
               </div>
-            )}
-            {isLoading && (
-              <div className="output-loading">
-                <div className="loading-ring" />
-                <span className="loading-text">{loadingStep}</span>
-                <span className="loading-sub">this takes about 30–60 seconds</span>
-              </div>
-            )}
-            {activeImage && !isLoading && <img className="output-image" src={activeImage} alt="Generated Toni" />}
-          </div>
 
-          {generations.length > 0 && (
-            <div className="gallery-section">
-              <div className="gallery-header">
-                <span className="gallery-label">Session</span>
-                <span className="gallery-count">{generations.length} image{generations.length !== 1 ? "s" : ""}</span>
+              <div className="field-block">
+                <span className="field-label">Model</span>
+                <div className="model-grid">
+                  {MODELS.map((m) => (
+                    <button key={m.value} className={`model-btn ${model === m.value ? "active" : ""}`} onClick={() => setModel(m.value)}>{m.label}</button>
+                  ))}
+                </div>
               </div>
-              <div className="gallery-grid">
-                {generations.map((gen) => (
-                  <div key={gen.id} className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`} onClick={() => setSelected(gen)} title={gen.scene}>
-                    <img src={gen.url} alt={gen.scene} />
-                    <span className="thumb-badge">{gen.model === "flux2" ? "F2" : "F1"}</span>
-                    <button className="thumb-delete" onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}>✕</button>
+
+              <div className="field-block">
+                <span className="field-label">Camera</span>
+                <div className="select-wrap">
+                  <select value={cameraAngle} onChange={(e) => setCameraAngle(e.target.value)}>
+                    {CAMERA_ANGLES.map((a) => <option key={a}>{a}</option>)}
+                  </select>
+                  <span className="select-arrow">▾</span>
+                </div>
+              </div>
+
+              <div className="field-block">
+                <span className="field-label">Format</span>
+                <div className="ratio-grid">
+                  {ASPECT_RATIOS.map((r) => (
+                    <button key={r.value} className={`ratio-btn ${aspectRatio === r.value ? "active" : ""}`} onClick={() => setAspectRatio(r.value)}>{r.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="field-block">
+                <button className="generate-btn" onClick={handleGenerate} disabled={isLoading || !scene.trim()}>
+                  {isLoading ? loadingStep : "Generate"}
+                </button>
+                {isLoading && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                    <div className="progress-wrap"><div className="progress-bar" /></div>
+                    <span className="loading-label">30–60s</span>
                   </div>
-                ))}
+                )}
+                {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
               </div>
-            </div>
-          )}
-        </section>
-      </div>
+
+              <p className="panel-footer">Scene descriptions are refined automatically.<br />Character rules applied behind the scenes.</p>
+            </aside>
+
+            <section className="panel-right">
+              <div className="output-header">
+                <span className="output-label">Output</span>
+                {activeImage && (
+                  <div className="output-actions">
+                    <button className="icon-btn" onClick={() => handleDownload(activeImage)}>↓ download</button>
+                    {selected && <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>}
+                  </div>
+                )}
+              </div>
+
+              <div className="output-canvas">
+                {!activeImage && !isLoading && (
+                  <div className="output-empty">
+                    <div className="output-crosshair" />
+                    <span className="output-empty-title">Awaiting scene</span>
+                  </div>
+                )}
+                {isLoading && (
+                  <div className="output-loading">
+                    <div className="loading-ring" />
+                    <span className="loading-text">{loadingStep}</span>
+                    <span className="loading-sub">this takes about 30–60 seconds</span>
+                  </div>
+                )}
+                {activeImage && !isLoading && <img className="output-image" src={activeImage} alt="Generated Toni" />}
+              </div>
+
+              {generations.length > 0 && (
+                <div className="gallery-section">
+                  <div className="gallery-header">
+                    <span className="gallery-label">Session</span>
+                    <span className="gallery-count">{generations.length} image{generations.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="gallery-grid">
+                    {generations.map((gen) => (
+                      <div key={gen.id} className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`} onClick={() => setSelected(gen)} title={gen.scene}>
+                        <img src={gen.url} alt={gen.scene} />
+                        <span className="thumb-badge">{gen.model === "flux2" ? "F2" : "F1"}</span>
+                        <button className="thumb-delete" onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
     </main>
   );
 }
