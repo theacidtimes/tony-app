@@ -101,25 +101,12 @@ export default function Home() {
     }
   };
 
-  const handleDownload = async (url: string) => {
-    const gen = generations.find((g) => g.url === url);
-    const response = await fetch("/api/download", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        imageUrl: url,
-        scene: gen?.scene || "",
-        model: gen?.model || model,
-        aspectRatio: gen?.aspectRatio || aspectRatio,
-      }),
-    });
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
+  const handleDownload = (url: string) => {
     const a = document.createElement("a");
-    a.href = objectUrl;
+    a.href = url;
+    a.target = "_blank";
     a.download = `toni-${Date.now()}.jpg`;
     a.click();
-    URL.revokeObjectURL(objectUrl);
   };
 
   const handleDelete = (id: string) => {
