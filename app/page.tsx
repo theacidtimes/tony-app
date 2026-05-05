@@ -63,20 +63,19 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         </div>
         <p className="login-sub">Tony Character Studio ©</p>
         <div className="login-field">
-          <input
-            type="password"
-            className={`login-input ${error ? "error" : ""}`}
-            placeholder="access code"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            autoFocus
-          />
-          {error && <span className="login-error">incorrect code</span>}
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+            <input
+              type="password"
+              className={`login-input ${error ? "error" : ""}`}
+              placeholder="access code"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+            {error && <span className="login-error">incorrect code</span>}
+            <button type="submit" className="login-btn">Enter</button>
+          </form>
         </div>
-        <button className="login-btn" onClick={handleSubmit}>
-          Enter
-        </button>
       </div>
     </div>
   );
@@ -182,14 +181,21 @@ export default function Home() {
   };
 
   const handleDownload = async (url: string) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = `toni-${Date.now()}.png`;
-    a.click();
-    URL.revokeObjectURL(objectUrl);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch image");
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("image")) throw new Error("Not an image");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `toni-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -213,8 +219,6 @@ export default function Home() {
           --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-
-        /* Login */
         .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
         .login-box { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 52px 48px; border: 1px solid var(--border); background: var(--surface); min-width: 320px; }
         .login-logo { display: flex; align-items: baseline; }
@@ -229,8 +233,6 @@ export default function Home() {
         .login-btn:hover { opacity: 0.9; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
         .shake { animation: shake 0.5s ease-in-out; }
-
-        /* App */
         .header { display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--border); }
         .acid-logo { display: flex; align-items: baseline; }
         .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 22px; letter-spacing: 0.02em; }
@@ -296,6 +298,7 @@ export default function Home() {
         .refine-btn { border-color: rgba(235,235,235,0.15); color: rgba(235,235,235,0.5); }
         .refine-btn:hover:not(:disabled) { border-color: rgba(235,235,235,0.35) !important; color: var(--text) !important; }
         .refine-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .refine-overlay { position: absolute; inset: 0; z-index: 2; background: rgba(20,20,20,0.75); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
         .output-canvas { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; min-height: 400px; }
         .output-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
         .output-empty { position: relative; z-index: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -310,7 +313,6 @@ export default function Home() {
         .loading-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; }
         .loading-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); margin-top: -10px; }
         .output-image { position: relative; z-index: 1; max-width: 100%; max-height: 500px; display: block; object-fit: contain; }
-        .refine-overlay { position: absolute; inset: 0; z-index: 2; background: rgba(20,20,20,0.75); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
         .gallery-section { border-top: 1px solid var(--border); padding: 14px 36px 18px; }
         .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
         .gallery-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
