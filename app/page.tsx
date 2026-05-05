@@ -74,7 +74,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           />
           {error && <span className="login-error">incorrect code</span>}
         </div>
-        <button className="login-btn" onClick={handleSubmit}>Enter</button>
+        <button className="login-btn" onClick={handleSubmit}>
+          Enter
+        </button>
       </div>
     </div>
   );
@@ -91,6 +93,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [selected, setSelected] = useState<Generation | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -151,6 +154,33 @@ export default function Home() {
     }
   };
 
+  const handleRefine = async (url: string) => {
+    setIsRefining(true);
+    try {
+      const res = await fetch("/api/refine-character", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const refined: Generation = {
+        id: Date.now().toString(),
+        url: data.imageUrl,
+        scene: (selected?.scene || "") + " ✦refined",
+        aspectRatio: selected?.aspectRatio || aspectRatio,
+        model: "nano",
+      };
+      setGenerations((prev) => [refined, ...prev]);
+      setSelected(refined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refine failed");
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   const handleDownload = async (url: string) => {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -185,7 +215,7 @@ export default function Home() {
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
 
         /* Login */
-        .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
         .login-box { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 52px 48px; border: 1px solid var(--border); background: var(--surface); min-width: 320px; }
         .login-logo { display: flex; align-items: baseline; }
         .login-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.16em; color: var(--text-dimmer); text-transform: uppercase; margin-top: -10px; }
@@ -263,6 +293,9 @@ export default function Home() {
         .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
         .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
         .icon-btn.danger:hover { border-color: rgba(255,107,107,0.4); color: #ff6b6b; }
+        .refine-btn { border-color: rgba(235,235,235,0.15); color: rgba(235,235,235,0.5); }
+        .refine-btn:hover:not(:disabled) { border-color: rgba(235,235,235,0.35) !important; color: var(--text) !important; }
+        .refine-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .output-canvas { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; min-height: 400px; }
         .output-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
         .output-empty { position: relative; z-index: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -390,6 +423,13 @@ export default function Home() {
                 {activeImage && (
                   <div className="output-actions">
                     <button className="icon-btn" onClick={() => handleDownload(activeImage)}>↓ download</button>
+                    <button
+                      className="icon-btn refine-btn"
+                      onClick={() => handleRefine(activeImage)}
+                      disabled={isRefining}
+                    >
+                      {isRefining ? "refining..." : "✦ refine"}
+                    </button>
                     {selected && <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>}
                   </div>
                 )}
@@ -422,7 +462,7 @@ export default function Home() {
                     {generations.map((gen) => (
                       <div key={gen.id} className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`} onClick={() => setSelected(gen)} title={gen.scene}>
                         <img src={gen.url} alt={gen.scene} />
-                        <span className="thumb-badge">{gen.model === "flux2" ? "F2" : "F1"}</span>
+                        <span className="thumb-badge">{gen.model === "flux2" ? "F2" : gen.model === "nano" ? "NB" : "F1"}</span>
                         <button className="thumb-delete" onClick={(e) => { e.stopPropagation(); handleDelete(gen.id); }}>✕</button>
                       </div>
                     ))}
