@@ -310,6 +310,7 @@ export default function Home() {
         .loading-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; }
         .loading-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); margin-top: -10px; }
         .output-image { position: relative; z-index: 1; max-width: 100%; max-height: 500px; display: block; object-fit: contain; }
+        .refine-overlay { position: absolute; inset: 0; z-index: 2; background: rgba(20,20,20,0.75); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
         .gallery-section { border-top: 1px solid var(--border); padding: 14px 36px 18px; }
         .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
         .gallery-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
@@ -449,7 +450,16 @@ export default function Home() {
                     <span className="loading-sub">this takes about 30–60 seconds</span>
                   </div>
                 )}
-                {activeImage && !isLoading && <img className="output-image" src={activeImage} alt="Generated Toni" />}
+                {activeImage && !isLoading && (
+                  <img className="output-image" src={activeImage} alt="Generated Toni" />
+                )}
+                {isRefining && (
+                  <div className="refine-overlay">
+                    <div className="loading-ring" style={{ borderTopColor: "rgba(235,235,235,0.6)" }} />
+                    <span className="loading-text">refining character...</span>
+                    <span className="loading-sub">comparing with references</span>
+                  </div>
+                )}
               </div>
 
               {generations.length > 0 && (
