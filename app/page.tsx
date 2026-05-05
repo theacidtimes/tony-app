@@ -69,7 +69,6 @@ export default function Home() {
       const refineRes = await fetch("/api/refine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // cameraAngle now goes to refine so it gets embedded in the prompt
         body: JSON.stringify({ scene, cameraAngle }),
       });
       const refineData = await refineRes.json();
@@ -79,7 +78,6 @@ export default function Home() {
       const generateRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // cameraAngle already embedded in refinedPrompt — not needed here
         body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, aspectRatio, model }),
       });
       const generateData = await generateRes.json();
@@ -104,12 +102,22 @@ export default function Home() {
   };
 
   const handleDownload = async (url: string) => {
-    const response = await fetch(url);
+    const gen = generations.find((g) => g.url === url);
+    const response = await fetch("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imageUrl: url,
+        scene: gen?.scene || "",
+        model: gen?.model || model,
+        aspectRatio: gen?.aspectRatio || aspectRatio,
+      }),
+    });
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = objectUrl;
-    a.download = `toni-${Date.now()}.png`;
+    a.download = `toni-${Date.now()}.jpg`;
     a.click();
     URL.revokeObjectURL(objectUrl);
   };
@@ -127,22 +135,12 @@ export default function Home() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --bg: #141414;
-          --surface: #1c1c1c;
-          --surface-2: #222222;
-          --surface-3: #282828;
-          --border: rgba(255,255,255,0.09);
-          --border-hover: rgba(255,255,255,0.18);
-          --text: #ebebeb;
-          --text-dim: rgba(235,235,235,0.45);
-          --text-dimmer: rgba(235,235,235,0.22);
-          --accent: #FF6B00;
-          --accent-dim: rgba(255,107,0,0.12);
-          --green: #2DCA72;
-          --green-dim: rgba(45,202,114,0.1);
-          --green-border: rgba(45,202,114,0.3);
-          --mono: 'Syne Mono', monospace;
-          --sans: 'Syne', sans-serif;
+          --bg: #141414; --surface: #1c1c1c; --surface-2: #222222; --surface-3: #282828;
+          --border: rgba(255,255,255,0.09); --border-hover: rgba(255,255,255,0.18);
+          --text: #ebebeb; --text-dim: rgba(235,235,235,0.45); --text-dimmer: rgba(235,235,235,0.22);
+          --accent: #FF6B00; --accent-dim: rgba(255,107,0,0.12);
+          --green: #2DCA72; --green-dim: rgba(45,202,114,0.1); --green-border: rgba(45,202,114,0.3);
+          --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
         .header { display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--border); }
