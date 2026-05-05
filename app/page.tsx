@@ -101,12 +101,19 @@ export default function Home() {
     }
   };
 
-  const handleDownload = (url: string) => {
+  const handleDownload = async (url: string) => {
+    const response = await fetch("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl: url }),
+    });
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
+    a.href = objectUrl;
     a.download = `toni-${Date.now()}.jpg`;
     a.click();
+    URL.revokeObjectURL(objectUrl);
   };
 
   const handleDelete = (id: string) => {
