@@ -8,7 +8,7 @@ const LORA_FLUX2_URL = "https://v3b.fal.media/files/b/0a98e908/VudC9BEhFrinJbfn9
 
 const CHARACTER = "TONI_TIGER character, anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build, exactly 2 whiskers per side of the face, no more no less";
 const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
-const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency. WHISKERS: strictly 2 whiskers per side, no exceptions, no extra whiskers, no missing whiskers.";
+const CHARACTER_LOCK = "Strict fidelity to original tiger character — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency. WHISKERS: Only 2 whiskers on each side, no exceptions, don't add 3 whiskers.";
 const ANATOMY = "Real tiger anatomy only. No human traits, no added joints, no altered limbs. Face: exactly 2 whiskers per side, precisely symmetrical placement, thin and sharp.";
 const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
