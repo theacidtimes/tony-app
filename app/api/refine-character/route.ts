@@ -12,7 +12,7 @@ const TONI_REFS = [
   "https://res.cloudinary.com/dgq1pj4hb/image/upload/q_auto/f_auto/v1777927593/fullbody_open_arms_back_xdkadd.png",
 ];
 
-const REFINE_PROMPT = `Using the last images as character references, refine the tiger character in the first image. Preserve everything about the scene: environment, background, lighting, atmosphere, camera angle, body posture, acting and pose. Only correct the character to match the references: facial structure, exactly 2 whiskers per side, stripe patterns, blue nose, four finger hands, yellow eyes, red bandana, white belly fur, silhouette. Do not change the scene or background.`;
+const REFINE_PROMPT = `Using the last images as character references, refine the tiger character in the first image. Preserve everything about the scene: environment, background, lighting, atmosphere, camera angle, body posture, acting and pose. Only correct the character so it matches the references in both face and full body: facial structure, head shape, muzzle, blue nose, yellow eyes, exactly 2 whiskers per side, stripe patterns, red bandana, white belly fur, torso proportions, athletic rounded body shape, arm thickness, leg proportions, paw size, four-finger hands, feet shape, tail shape, posture anatomy and overall silhouette.`;
 
 export async function POST(request: Request) {
   try {
