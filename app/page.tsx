@@ -18,8 +18,8 @@ const ASPECT_RATIOS = [
 ];
 
 const MODELS = [
-  { label: "Flux 1 — Fast", value: "flux1" },
-  { label: "Flux 2 — Quality", value: "flux2" },
+  { label: "Fast", value: "flux1" },
+  { label: "Quality", value: "flux2" },
 ];
 
 const MAX_CHARS = 200;
