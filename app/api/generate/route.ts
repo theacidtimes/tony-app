@@ -1,20 +1,30 @@
 import { fal } from "@fal-ai/client";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getMonthlyUsage, logGeneration, getOrCreateUser } from "@/lib/supabase";
-import { PLANS, PlanType } from "@/lib/plans";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
 
 fal.config({ credentials: process.env.FAL_KEY });
 
-const LORA_FLUX1_URL = "https://v3b.fal.media/files/b/0a98df64/eQMXIQDgmJv2T3BrX0Yun_pytorch_lora_weights.safetensors";
-const LORA_FLUX2_URL = "https://v3b.fal.media/files/b/0a98e908/VudC9BEhFrinJbfn9dR9B_pytorch_lora_weights.safetensors";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-const CHARACTER = "TONI_TIGER character, an anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build, exactly 2 whiskers per side of the face, no more no less";
-const BEHAVIOR = "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
-const CHARACTER_LOCK = "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency. WHISKERS: strictly 2 whiskers per side, no exceptions.";
-const ANATOMY = "Real tiger anatomy only. No human traits, no added joints, no altered limbs. Face: exactly 2 whiskers per side, precisely symmetrical placement, thin and sharp.";
-const RULES = "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
+const LORA_FLUX1_URL =
+  "https://v3b.fal.media/files/b/0a98df64/eQMXIQDgmJv2T3BrX0Yun_pytorch_lora_weights.safetensors";
+const LORA_FLUX2_URL =
+  "https://v3b.fal.media/files/b/0a98e908/VudC9BEhFrinJbfn9dR9B_pytorch_lora_weights.safetensors";
+
+const CHARACTER =
+  "TONI_TIGER character, anthropomorphic tiger mascot, orange fur with black stripes, red bandana around neck, white belly fur, round black-tipped ears, blue nose, yellow expressive eyes, athletic bipedal build, exactly 2 whiskers per side of the face, no more no less";
+const BEHAVIOR =
+  "Confident, energetic, charismatic. Natural expression, subtle asymmetry. Eyes engaged, never empty. Relaxed, grounded posture. Athletic, physically believable movement. No stiffness, no overacting, no cartoon behavior.";
+const CHARACTER_LOCK =
+  "Strict fidelity to original tiger reference — exact stripe patterns, fur texture and direction, facial structure and proportions, silhouette consistency. WHISKERS: strictly 2 whiskers per side, no exceptions, no extra whiskers, no missing whiskers.";
+const ANATOMY =
+  "Real tiger anatomy only. No human traits, no added joints, no altered limbs. Face: exactly 2 whiskers per side, precisely symmetrical placement, thin and sharp.";
+const RULES =
+  "Style: Hyper-realistic editorial photography. No CGI, no cartoon, no stylization. Light: Soft diffused ambient light, natural shadow falloff, subtle grain, balanced exposure.";
 
 const ASPECT_RATIOS: Record<string, { width: number; height: number }> = {
   "1:1": { width: 1024, height: 1024 },
@@ -30,26 +40,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { refinedPrompt, aspectRatio, model, scene } = await request.json();
+    const { refinedPrompt, aspectRatio, model } = await request.json();
 
     if (!refinedPrompt) {
-      return NextResponse.json({ error: "Refined prompt is required" }, { status: 400 });
-    }
-
-    // Check monthly limit
-    const user = await currentUser();
-    const email = user?.emailAddresses?.[0]?.emailAddress || "";
-    const name = user?.fullName || user?.firstName || email;
-    const dbUser = await getOrCreateUser(userId, email, name);
-    const plan = (dbUser?.plan || "enterprise") as PlanType;
-    const limit = PLANS[plan]?.monthlyLimit || 1000;
-    const used = await getMonthlyUsage(userId);
-
-    if (used >= limit) {
-      return NextResponse.json({ error: "Monthly limit reached. Please upgrade your plan." }, { status: 429 });
+      return NextResponse.json(
+        { error: "Refined prompt is required" },
+        { status: 400 }
+      );
     }
 
     const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS["1:1"];
+
+    // Camera angle already embedded in refinedPrompt by the refine API
     const fullPrompt = [
       `${CHARACTER}, ${refinedPrompt}`,
       BEHAVIOR,
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
       RULES,
     ].join(" ");
 
-    let imageUrl: string | undefined;
+    let falImageUrl: string | undefined;
 
     if (model === "flux2") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
           num_images: 1,
         },
       });
-      imageUrl = result?.data?.images?.[0]?.url || result?.images?.[0]?.url;
+      falImageUrl = result?.data?.images?.[0]?.url || result?.images?.[0]?.url;
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (fal.subscribe as any)("fal-ai/flux-lora", {
@@ -86,15 +88,53 @@ export async function POST(request: Request) {
           enable_safety_checker: false,
         },
       });
-      imageUrl = result?.data?.images?.[0]?.url || result?.images?.[0]?.url;
+      falImageUrl = result?.data?.images?.[0]?.url || result?.images?.[0]?.url;
     }
 
-    if (!imageUrl) {
+    if (!falImageUrl) {
       return NextResponse.json({ error: "No image generated" }, { status: 500 });
     }
 
-    // Log generation in Supabase
-    await logGeneration(userId, model || "flux2", scene || "");
+    // — Upload para Supabase Storage —
+    let imageUrl = falImageUrl;
+    try {
+      const imageResponse = await fetch(falImageUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const imageBytes = new Uint8Array(imageBuffer);
+
+      const fileName = `${userId}/${Date.now()}.webp`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("generations")
+        .upload(fileName, imageBytes, {
+          contentType: "image/webp",
+          upsert: false,
+        });
+
+      if (!uploadError) {
+        const { data: publicData } = supabase.storage
+          .from("generations")
+          .getPublicUrl(fileName);
+        imageUrl = publicData.publicUrl;
+      } else {
+        console.error("Storage upload error:", uploadError.message);
+        // fallback: usa URL do fal mesmo
+      }
+    } catch (storageErr) {
+      console.error("Storage error (fallback to fal URL):", storageErr);
+    }
+
+    // — Log no Supabase (generations table) —
+    try {
+      await supabase.from("generations").insert({
+        clerk_id: userId,
+        model: model || "flux1",
+        scene: refinedPrompt,
+        image_url: imageUrl,
+      });
+    } catch (dbErr) {
+      console.error("DB log error:", dbErr);
+    }
 
     return NextResponse.json({ imageUrl });
   } catch (error) {
