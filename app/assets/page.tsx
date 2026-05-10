@@ -75,7 +75,7 @@ export default function AssetsPage() {
     }
   }
 
-  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "User";
+  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "User";
 
   if (!isLoaded) return null;
 
