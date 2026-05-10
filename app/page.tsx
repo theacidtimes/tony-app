@@ -214,7 +214,7 @@ export default function Home() {
 
   const activeImage = selected?.url || null;
   const usageColor = usage ? getPlanColor(usage.used, usage.limit) : "#2DCA72";
-  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "User";
+  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "User";
 
   if (!isLoaded) return null;
 
