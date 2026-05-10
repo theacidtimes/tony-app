@@ -185,7 +185,6 @@ export default function AssetsPage() {
                     "#2a2a2a";
                 }}
               >
-                {/* Image */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={gen.image_url}
@@ -224,7 +223,6 @@ export default function AssetsPage() {
                       fontSize: 12,
                       color: "#ccc",
                       margin: "0 0 8px",
-                      lineClamp: 2,
                       WebkitLineClamp: 2,
                       display: "-webkit-box",
                       WebkitBoxOrient: "vertical",
