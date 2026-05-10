@@ -43,9 +43,9 @@ export default function AssetsPage() {
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (!error && data) {
-  setGenerations(data as Generation[]);
-  if (data.length > 0) setSelected(data[0] as Generation);
-}
+          setGenerations(data as Generation[]);
+          if (data.length > 0) setSelected(data[0] as Generation);
+        }
         setLoading(false);
       });
   }, [user]);
@@ -75,7 +75,11 @@ export default function AssetsPage() {
     }
   }
 
-  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "User";
+  const firstName =
+    user?.firstName ||
+    user?.fullName?.split(" ")[0] ||
+    user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+    "User";
 
   if (!isLoaded) return null;
 
@@ -116,12 +120,13 @@ export default function AssetsPage() {
         .assets-title { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dimmer); }
         .assets-count { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); }
         .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
-        .asset-thumb { position: relative; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; aspect-ratio: 1; }
+        .asset-thumb { position: relative; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; aspect-ratio: 1; background: var(--surface); }
         .asset-thumb:hover { border-color: var(--border-hover); }
         .asset-thumb.active { border-color: var(--accent); }
-        .asset-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .asset-badge { position: absolute; bottom: 4px; left: 4px; font-family: var(--mono); font-size: 7px; background: rgba(0,0,0,0.75); color: rgba(255,255,255,0.6); padding: 1px 4px; border-radius: 1px; letter-spacing: 0.04em; }
-        .asset-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%); opacity: 0; transition: opacity 0.15s; display: flex; align-items: flex-end; padding: 8px; }
+        .asset-skeleton { position: absolute; inset: 0; background: var(--surface); animation: pulse 1.5s ease-in-out infinite; z-index: 1; }
+        .asset-thumb img { position: relative; z-index: 2; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .asset-badge { position: absolute; bottom: 4px; left: 4px; font-family: var(--mono); font-size: 7px; background: rgba(0,0,0,0.75); color: rgba(255,255,255,0.6); padding: 1px 4px; border-radius: 1px; letter-spacing: 0.04em; z-index: 3; }
+        .asset-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%); opacity: 0; transition: opacity 0.15s; display: flex; align-items: flex-end; padding: 8px; z-index: 3; }
         .asset-thumb:hover .asset-overlay { opacity: 1; }
         .asset-scene { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.7); letter-spacing: 0.04em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .preview-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; }
@@ -211,8 +216,17 @@ export default function AssetsPage() {
                   className={`asset-thumb ${selected?.id === gen.id ? "active" : ""}`}
                   onClick={() => setSelected(gen)}
                 >
+                  <div className="asset-skeleton" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={gen.image_url} alt={gen.scene} />
+                  <img
+                    src={gen.image_url}
+                    alt={gen.scene}
+                    loading="lazy"
+                    onLoad={e => {
+                      const skeleton = (e.currentTarget as HTMLImageElement).previousSibling as HTMLElement;
+                      if (skeleton) skeleton.style.display = "none";
+                    }}
+                  />
                   <span className="asset-badge">{MODEL_BADGE[gen.model] || gen.model?.toUpperCase() || "F1"}</span>
                   <div className="asset-overlay">
                     <span className="asset-scene">{gen.scene}</span>
