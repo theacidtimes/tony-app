@@ -66,14 +66,30 @@ export default function Home() {
   const hasTrigger = TRIGGER_REGEX.test(scene);
   TRIGGER_REGEX.lastIndex = 0;
 
-  // Fetch usage on mount
+  // Fetch usage + past generations on mount
   useEffect(() => {
-    if (isLoaded && user) {
-      fetch("/api/usage")
-        .then(r => r.json())
-        .then(setUsage)
-        .catch(console.error);
-    }
+    if (!isLoaded || !user) return;
+
+    fetch("/api/usage")
+      .then(r => r.json())
+      .then(setUsage)
+      .catch(console.error);
+
+    fetch("/api/generations")
+      .then(r => r.json())
+      .then((data: Array<{ id: string; image_url: string; scene: string; model: string }>) => {
+        if (!Array.isArray(data)) return;
+        const loaded: Generation[] = data.map(g => ({
+          id: g.id,
+          url: g.image_url,
+          scene: g.scene?.slice(0, 60) + (g.scene?.length > 60 ? "..." : ""),
+          aspectRatio: "1:1",
+          model: g.model || "flux1",
+        }));
+        setGenerations(loaded);
+        if (loaded.length > 0) setSelected(loaded[0]);
+      })
+      .catch(console.error);
   }, [isLoaded, user]);
 
   // Close dropdown on outside click
@@ -135,7 +151,6 @@ export default function Home() {
       setGenerations(prev => [newGen, ...prev]);
       setSelected(newGen);
 
-      // Update usage count locally
       if (usage) {
         setUsage(prev => prev ? { ...prev, used: prev.used + 1, remaining: prev.remaining - 1, percentage: Math.min(100, Math.round(((prev.used + 1) / prev.limit) * 100)) } : prev);
       }
@@ -217,54 +232,29 @@ export default function Home() {
           --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
-
-        /* Header */
         .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); gap: 24px; }
         .acid-logo { display: flex; align-items: baseline; flex-shrink: 0; }
         .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 20px; letter-spacing: 0.02em; }
         .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 8px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; }
         .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 12px; align-self: center; }
-
-        /* Usage bar in header */
         .header-usage { display: flex; align-items: center; gap: 12px; flex: 1; max-width: 360px; margin: 0 auto; }
         .usage-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.1em; white-space: nowrap; }
         .usage-bar-wrap { flex: 1; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
         .usage-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
         .usage-count { font-family: var(--mono); font-size: 9px; color: var(--text-dim); white-space: nowrap; letter-spacing: 0.06em; }
-
-        /* User dropdown */
         .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
         .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; flex-shrink: 0; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-        .user-btn {
-          display: flex; align-items: center; gap: 8px;
-          background: transparent; border: 1px solid var(--border);
-          color: var(--text-dim); font-family: var(--mono); font-size: 10px;
-          letter-spacing: 0.08em; padding: 6px 12px; cursor: pointer;
-          border-radius: 2px; transition: all 0.15s;
-        }
+        .user-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 6px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
         .user-btn:hover { border-color: var(--border-hover); color: var(--text); }
         .user-btn svg { opacity: 0.4; }
-        .dropdown-menu {
-          position: absolute; top: calc(100% + 8px); right: 0;
-          background: var(--surface); border: 1px solid var(--border);
-          border-radius: 2px; min-width: 180px; z-index: 100;
-          overflow: hidden;
-        }
+        .dropdown-menu { position: absolute; top: calc(100% + 8px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 2px; min-width: 180px; z-index: 100; overflow: hidden; }
         .dropdown-header { padding: 12px 14px; border-bottom: 1px solid var(--border); }
         .dropdown-name { font-family: var(--sans); font-size: 12px; color: var(--text); }
         .dropdown-plan { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
-        .dropdown-item {
-          display: block; width: 100%; text-align: left;
-          background: transparent; border: none;
-          padding: 10px 14px; font-family: var(--mono); font-size: 10px;
-          color: var(--text-dim); letter-spacing: 0.08em; cursor: pointer;
-          transition: background 0.15s, color 0.15s;
-        }
+        .dropdown-item { display: block; width: 100%; text-align: left; background: transparent; border: none; padding: 10px 14px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s, color 0.15s; text-decoration: none; }
         .dropdown-item:hover { background: var(--surface-2); color: var(--text); }
         .dropdown-item.danger:hover { color: #ff6b6b; }
-
-        /* Layout */
         .layout { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 65px); }
         .panel-left { border-right: 1px solid var(--border); padding: 28px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
         .field-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dimmer); }
@@ -355,7 +345,6 @@ export default function Home() {
       `}</style>
 
       <header className="header">
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           <div className="acid-logo">
             <span className="acid-letters">
@@ -369,23 +358,16 @@ export default function Home() {
           <span className="acid-sub">Tony Character Studio ©</span>
         </div>
 
-        {/* Usage bar */}
         {usage && (
           <div className="header-usage">
             <span className="usage-label">images</span>
             <div className="usage-bar-wrap">
-              <div
-                className="usage-bar-fill"
-                style={{ width: `${usage.percentage}%`, background: usageColor }}
-              />
+              <div className="usage-bar-fill" style={{ width: `${usage.percentage}%`, background: usageColor }} />
             </div>
-            <span className="usage-count" style={{ color: usageColor }}>
-              {usage.used}/{usage.limit}
-            </span>
+            <span className="usage-count" style={{ color: usageColor }}>{usage.used}/{usage.limit}</span>
           </div>
         )}
 
-        {/* User dropdown */}
         <div className="header-right" ref={dropdownRef}>
           <span className="status-dot" />
           <button className="user-btn" onClick={() => setDropdownOpen(o => !o)}>
@@ -400,6 +382,9 @@ export default function Home() {
                 <div className="dropdown-name">{user?.fullName || firstName}</div>
                 <div className="dropdown-plan">{usage?.plan || "enterprise"} plan · {usage?.remaining || 0} remaining</div>
               </div>
+              <a href="/assets" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                ◫ My assets
+              </a>
               <button className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                 ⚙ Settings
               </button>
