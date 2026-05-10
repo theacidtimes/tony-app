@@ -1,7 +1,14 @@
 import { fal } from "@fal-ai/client";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
 
 fal.config({ credentials: process.env.FAL_KEY });
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const TONI_REFS = [
   "https://res.cloudinary.com/dgq1pj4hb/image/upload/v1777927596/closeup_frontal_normal_twkbjk.png",
@@ -16,13 +23,16 @@ const REFINE_PROMPT = `Using the last images as character references, refine the
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl } = await request.json();
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    const { imageUrl, scene } = await request.json();
     if (!imageUrl) {
       return NextResponse.json({ error: "Image URL is required" }, { status: 400 });
     }
 
-    // First image is the one to edit, remaining are character references
     const image_urls = [imageUrl, ...TONI_REFS];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,15 +43,55 @@ export async function POST(request: Request) {
       },
     });
 
-    const refinedUrl =
+    const falRefinedUrl =
       result?.data?.images?.[0]?.url ||
       result?.images?.[0]?.url ||
       result?.data?.image?.url ||
       result?.image?.url;
 
-    if (!refinedUrl) {
+    if (!falRefinedUrl) {
       console.error("No refined image URL:", JSON.stringify(result).slice(0, 300));
       return NextResponse.json({ error: "No image returned from refiner" }, { status: 500 });
+    }
+
+    // — Upload para Supabase Storage —
+    let refinedUrl = falRefinedUrl;
+    try {
+      const imageResponse = await fetch(falRefinedUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const imageBytes = new Uint8Array(imageBuffer);
+
+      const fileName = `${userId}/${Date.now()}_nb.webp`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("generations")
+        .upload(fileName, imageBytes, {
+          contentType: "image/webp",
+          upsert: false,
+        });
+
+      if (!uploadError) {
+        const { data: publicData } = supabase.storage
+          .from("generations")
+          .getPublicUrl(fileName);
+        refinedUrl = publicData.publicUrl;
+      } else {
+        console.error("Storage upload error:", uploadError.message);
+      }
+    } catch (storageErr) {
+      console.error("Storage error (fallback to fal URL):", storageErr);
+    }
+
+    // — Log no Supabase —
+    try {
+      await supabase.from("generations").insert({
+        clerk_id: userId,
+        model: "nano",
+        scene: scene || "refined",
+        image_url: refinedUrl,
+      });
+    } catch (dbErr) {
+      console.error("DB log error:", dbErr);
     }
 
     return NextResponse.json({ imageUrl: refinedUrl });
