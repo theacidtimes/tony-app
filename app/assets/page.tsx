@@ -1,8 +1,8 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,31 +20,45 @@ interface Generation {
 const MODEL_BADGE: Record<string, string> = {
   flux1: "F1",
   flux2: "F2",
+  nano: "NB",
   nanobanana: "NB",
 };
 
 export default function AssetsPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Generation | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
-
-    async function fetchGenerations() {
-      const { data, error } = await supabase
-        .from("generations")
-        .select("*")
-        .eq("clerk_id", user!.id)
-        .not("image_url", "is", null)
-        .order("created_at", { ascending: false });
-
-      if (!error && data) setGenerations(data);
-      setLoading(false);
-    }
-
-    fetchGenerations();
+    supabase
+      .from("generations")
+      .select("*")
+      .eq("clerk_id", user.id)
+      .not("image_url", "is", null)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setGenerations(data);
+          if (data.length > 0) setSelected(data[0]);
+        }
+        setLoading(false);
+      });
   }, [user]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   async function handleDownload(url: string, id: string) {
     try {
@@ -61,224 +75,179 @@ export default function AssetsPage() {
     }
   }
 
+  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "User";
+
+  if (!isLoaded) return null;
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#0a0a0a",
-        color: "#f5f0e8",
-        fontFamily: "var(--font-geist-sans, sans-serif)",
-        padding: "40px 24px",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto 40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 600,
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
-            My Assets
-          </h1>
-          <p style={{ color: "#888", fontSize: 14, marginTop: 6 }}>
-            {loading
-              ? "Loading..."
-              : `${generations.length} image${generations.length !== 1 ? "s" : ""} generated`}
-          </p>
-        </div>
-        <a
-          href="/"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            backgroundColor: "#1a1a1a",
-            border: "1px solid #2a2a2a",
-            borderRadius: 8,
-            color: "#f5f0e8",
-            textDecoration: "none",
-            fontSize: 14,
-          }}
-        >
-          ← Generate
-        </a>
-      </div>
-
-      {/* Grid */}
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        {loading ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  aspectRatio: "1",
-                  backgroundColor: "#1a1a1a",
-                  borderRadius: 12,
-                  animation: "pulse 1.5s ease-in-out infinite",
-                }}
-              />
-            ))}
-          </div>
-        ) : generations.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 0",
-              color: "#555",
-            }}
-          >
-            <p style={{ fontSize: 18 }}>No images yet.</p>
-            <p style={{ fontSize: 14, marginTop: 8 }}>
-              Generate your first Toni on the{" "}
-              <a href="/" style={{ color: "#c49a45", textDecoration: "none" }}>
-                main page
-              </a>
-              .
-            </p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {generations.map((gen) => (
-              <div
-                key={gen.id}
-                style={{
-                  position: "relative",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  backgroundColor: "#1a1a1a",
-                  border: "1px solid #2a2a2a",
-                  cursor: "pointer",
-                  transition: "border-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#c49a45";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#2a2a2a";
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={gen.image_url}
-                  alt={gen.scene}
-                  style={{
-                    width: "100%",
-                    aspectRatio: "1",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-
-                {/* Overlay */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 50%)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-end",
-                    padding: 12,
-                    opacity: 0,
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.opacity = "1";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.opacity = "0";
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "#ccc",
-                      margin: "0 0 8px",
-                      WebkitLineClamp: 2,
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {gen.scene}
-                  </p>
-                  <button
-                    onClick={() => handleDownload(gen.image_url, gen.id)}
-                    style={{
-                      width: "100%",
-                      padding: "6px 0",
-                      backgroundColor: "#c49a45",
-                      border: "none",
-                      borderRadius: 6,
-                      color: "#000",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Download
-                  </button>
-                </div>
-
-                {/* Model Badge */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    backgroundColor: "rgba(0,0,0,0.7)",
-                    border: "1px solid #333",
-                    borderRadius: 4,
-                    padding: "2px 6px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#c49a45",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {MODEL_BADGE[gen.model] || gen.model?.toUpperCase() || "F1"}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.8; }
+    <main>
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=Libre+Caslon+Text:ital,wght@0,400;1,400&family=IBM+Plex+Sans:wght@300;400&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+          --bg: #141414; --surface: #1c1c1c; --surface-2: #222222; --surface-3: #282828;
+          --border: rgba(255,255,255,0.09); --border-hover: rgba(255,255,255,0.18);
+          --text: #ebebeb; --text-dim: rgba(235,235,235,0.45); --text-dimmer: rgba(235,235,235,0.22);
+          --accent: #FF6B00; --accent-dim: rgba(255,107,0,0.12);
+          --green: #2DCA72; --green-dim: rgba(45,202,114,0.1); --green-border: rgba(45,202,114,0.3);
+          --mono: 'Syne Mono', monospace; --sans: 'Syne', sans-serif;
         }
+        html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); gap: 24px; }
+        .acid-logo { display: flex; align-items: baseline; flex-shrink: 0; }
+        .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 20px; letter-spacing: 0.02em; }
+        .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 8px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; }
+        .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 12px; align-self: center; }
+        .header-right { display: flex; align-items: center; gap: 8px; position: relative; }
+        .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2.5s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+        .user-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 6px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+        .user-btn:hover { border-color: var(--border-hover); color: var(--text); }
+        .user-btn svg { opacity: 0.4; }
+        .dropdown-menu { position: absolute; top: calc(100% + 8px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 2px; min-width: 180px; z-index: 100; overflow: hidden; }
+        .dropdown-header { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        .dropdown-name { font-family: var(--sans); font-size: 12px; color: var(--text); }
+        .dropdown-item { display: block; width: 100%; text-align: left; background: transparent; border: none; padding: 10px 14px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s, color 0.15s; text-decoration: none; }
+        .dropdown-item:hover { background: var(--surface-2); color: var(--text); }
+        .dropdown-item.danger:hover { color: #ff6b6b; }
+        .assets-layout { display: grid; grid-template-columns: 1fr 320px; min-height: calc(100vh - 65px); }
+        .assets-grid-wrap { padding: 28px 36px; overflow-y: auto; }
+        .assets-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+        .assets-title { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dimmer); }
+        .assets-count { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); }
+        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+        .asset-thumb { position: relative; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; aspect-ratio: 1; }
+        .asset-thumb:hover { border-color: var(--border-hover); }
+        .asset-thumb.active { border-color: var(--accent); }
+        .asset-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .asset-badge { position: absolute; bottom: 4px; left: 4px; font-family: var(--mono); font-size: 7px; background: rgba(0,0,0,0.75); color: rgba(255,255,255,0.6); padding: 1px 4px; border-radius: 1px; letter-spacing: 0.04em; }
+        .asset-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%); opacity: 0; transition: opacity 0.15s; display: flex; align-items: flex-end; padding: 8px; }
+        .asset-thumb:hover .asset-overlay { opacity: 1; }
+        .asset-scene { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.7); letter-spacing: 0.04em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .preview-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+        .preview-header { padding: 13px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .preview-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
+        .preview-canvas { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; }
+        .preview-canvas::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
+        .preview-img { position: relative; z-index: 1; max-width: 100%; max-height: 400px; object-fit: contain; display: block; border-radius: 2px; }
+        .preview-empty { position: relative; z-index: 1; font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.15em; text-transform: uppercase; }
+        .preview-actions { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        .preview-scene { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.06em; line-height: 1.6; margin-bottom: 4px; }
+        .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 8px 14px; cursor: pointer; border-radius: 2px; transition: all 0.15s; width: 100%; text-align: center; }
+        .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
+        .back-btn { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.1em; text-decoration: none; padding: 6px 12px; border: 1px solid var(--border); border-radius: 2px; transition: all 0.15s; }
+        .back-btn:hover { border-color: var(--border-hover); color: var(--text); }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 12px; }
+        .empty-crosshair { width: 28px; height: 28px; position: relative; opacity: 0.15; }
+        .empty-crosshair::before, .empty-crosshair::after { content: ''; position: absolute; background: var(--text); }
+        .empty-crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
+        .empty-crosshair::after { height: 1px; width: 100%; top: 50%; left: 0; }
+        .empty-text { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
+        .skeleton { background: var(--surface); animation: pulse 1.5s ease-in-out infinite; border-radius: 2px; }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
       `}</style>
+
+      <header className="header">
+        <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <div className="acid-logo">
+            <span className="acid-letters">
+              <span style={{ color: "#F4A233" }}>A</span>
+              <span style={{ color: "#7EC8E3" }}>C</span>
+              <span style={{ color: "#2DCA72" }}>I</span>
+              <span style={{ color: "#E88CBF" }}>D</span>
+            </span>
+            <span className="acid-tm">™</span>
+          </div>
+          <span className="acid-sub">Tony Character Studio ©</span>
+        </div>
+
+        <div className="header-right" ref={dropdownRef}>
+          <span className="status-dot" />
+          <button className="user-btn" onClick={() => setDropdownOpen(o => !o)}>
+            {firstName}
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {dropdownOpen && (
+            <div className="dropdown-menu">
+              <div className="dropdown-header">
+                <div className="dropdown-name">{user?.fullName || firstName}</div>
+              </div>
+              <a href="/" className="dropdown-item">← Generate</a>
+              <button className="dropdown-item danger" onClick={() => signOut({ redirectUrl: "/sign-in" })}>
+                → Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <div className="assets-layout">
+        <div className="assets-grid-wrap">
+          <div className="assets-header">
+            <span className="assets-title">Assets</span>
+            <span className="assets-count">
+              {loading ? "—" : `${generations.length} image${generations.length !== 1 ? "s" : ""}`}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="assets-grid">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="skeleton" style={{ aspectRatio: "1" }} />
+              ))}
+            </div>
+          ) : generations.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-crosshair" />
+              <span className="empty-text">No assets yet</span>
+            </div>
+          ) : (
+            <div className="assets-grid">
+              {generations.map(gen => (
+                <div
+                  key={gen.id}
+                  className={`asset-thumb ${selected?.id === gen.id ? "active" : ""}`}
+                  onClick={() => setSelected(gen)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={gen.image_url} alt={gen.scene} />
+                  <span className="asset-badge">{MODEL_BADGE[gen.model] || gen.model?.toUpperCase() || "F1"}</span>
+                  <div className="asset-overlay">
+                    <span className="asset-scene">{gen.scene}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="preview-panel">
+          <div className="preview-header">
+            <span className="preview-label">Preview</span>
+            <a href="/" className="back-btn">← generate</a>
+          </div>
+
+          <div className="preview-canvas">
+            {selected ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="preview-img" src={selected.image_url} alt={selected.scene} />
+            ) : (
+              <span className="preview-empty">select an image</span>
+            )}
+          </div>
+
+          {selected && (
+            <div className="preview-actions">
+              <p className="preview-scene">{selected.scene}</p>
+              <button className="icon-btn" onClick={() => handleDownload(selected.image_url, selected.id)}>
+                ↓ download
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   );
 }
