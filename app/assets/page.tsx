@@ -43,9 +43,9 @@ export default function AssetsPage() {
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (!error && data) {
-          setGenerations(data);
-          if (data.length > 0) setSelected(data[0]);
-        }
+  setGenerations(data as Generation[]);
+  if (data.length > 0) setSelected(data[0] as Generation);
+}
         setLoading(false);
       });
   }, [user]);
