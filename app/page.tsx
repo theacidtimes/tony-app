@@ -168,7 +168,7 @@ export default function Home() {
       const res = await fetch("/api/refine-character", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: url }),
+        body: JSON.stringify({ imageUrl: url, scene: (selected?.scene || "") + " ✦refined" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
