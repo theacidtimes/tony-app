@@ -357,7 +357,7 @@ export default function Home() {
 
       <header className="header">
         <div className="acid-logo">
-          <img src="/logo.svg" alt="ACID" style={{ height: 28, width: "auto", display: "block" }} />
+          <img src="/logo.svg" alt="ACID" style={{ height: 32, width: "auto", display: "block" }} />
           <span className="acid-sub">Tony Character Studio ©</span>
         </div>
 
