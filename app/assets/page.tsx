@@ -31,6 +31,8 @@ export default function AssetsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Generation | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Generation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,6 +75,27 @@ export default function AssetsPage() {
     } catch {
       window.open(url, "_blank");
     }
+  }
+
+  async function confirmDeleteAction() {
+    if (!confirmDelete) return;
+    setIsDeleting(true);
+    const gen = confirmDelete;
+    setConfirmDelete(null);
+
+    try {
+      await fetch("/api/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: gen.id, imageUrl: gen.image_url }),
+      });
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+
+    setGenerations(prev => prev.filter(g => g.id !== gen.id));
+    if (selected?.id === gen.id) setSelected(null);
+    setIsDeleting(false);
   }
 
   const firstName =
@@ -140,6 +163,8 @@ export default function AssetsPage() {
         .preview-scene { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.06em; line-height: 1.6; margin-bottom: 4px; }
         .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 8px 14px; cursor: pointer; border-radius: 2px; transition: all 0.15s; width: 100%; text-align: center; }
         .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
+        .icon-btn.danger { border-color: rgba(255,107,107,0.25); color: rgba(255,107,107,0.6); }
+        .icon-btn.danger:hover { border-color: rgba(255,107,107,0.5); color: #ff6b6b; background: rgba(255,107,107,0.06); }
         .back-btn { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.1em; text-decoration: none; padding: 6px 12px; border: 1px solid var(--border); border-radius: 2px; transition: all 0.15s; }
         .back-btn:hover { border-color: var(--border-hover); color: var(--text); }
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 12px; }
@@ -150,6 +175,17 @@ export default function AssetsPage() {
         .empty-text { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.2em; text-transform: uppercase; }
         .skeleton { background: var(--surface); animation: pulse 1.5s ease-in-out infinite; border-radius: 2px; }
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+        /* Confirm dialog */
+        .confirm-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 32px; pointer-events: none; }
+        .confirm-box { pointer-events: all; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); animation: slideUp 0.15s ease; }
+        @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .confirm-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
+        .confirm-actions { display: flex; gap: 8px; }
+        .confirm-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+        .confirm-cancel:hover { border-color: var(--border-hover); color: var(--text); }
+        .confirm-ok { background: transparent; border: 1px solid rgba(255,107,107,0.35); color: #ff6b6b; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+        .confirm-ok:hover { background: rgba(255,107,107,0.08); border-color: rgba(255,107,107,0.6); }
+        .confirm-ok:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 
       <header className="header">
@@ -180,9 +216,7 @@ export default function AssetsPage() {
                 <div className="dropdown-name">{user?.fullName || firstName}</div>
               </div>
               <a href="/" className="dropdown-item">← Generate</a>
-              <button className="dropdown-item danger" onClick={() => signOut({ redirectUrl: "/sign-in" })}>
-                → Sign out
-              </button>
+              <button className="dropdown-item danger" onClick={() => signOut({ redirectUrl: "/sign-in" })}>→ Sign out</button>
             </div>
           )}
         </div>
@@ -258,10 +292,28 @@ export default function AssetsPage() {
               <button className="icon-btn" onClick={() => handleDownload(selected.image_url, selected.id)}>
                 ↓ download
               </button>
+              <button className="icon-btn danger" onClick={() => setConfirmDelete(selected)}>
+                ✕ remove
+              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Confirm delete dialog */}
+      {confirmDelete && (
+        <div className="confirm-overlay">
+          <div className="confirm-box">
+            <span className="confirm-text">remove this image? this cannot be undone.</span>
+            <div className="confirm-actions">
+              <button className="confirm-cancel" onClick={() => setConfirmDelete(null)}>cancel</button>
+              <button className="confirm-ok" onClick={confirmDeleteAction} disabled={isDeleting}>
+                {isDeleting ? "removing..." : "remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
