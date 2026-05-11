@@ -191,7 +191,7 @@ export default function AssetsPage() {
       <header className="header">
         <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           <div className="acid-logo">
-            <img src="/logo.svg" alt="ACID" style={{ height: 28, width: "auto", display: "block" }} />
+            <img src="/logo.svg" alt="ACID" style={{ height: 32, width: "auto", display: "block" }} />
             <span className="acid-sub">Tony Character Studio ©</span>
           </div>
         </div>
