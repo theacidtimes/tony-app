@@ -58,6 +58,8 @@ export default function Home() {
   const [isRefining, setIsRefining] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Generation | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -66,7 +68,6 @@ export default function Home() {
   const hasTrigger = TRIGGER_REGEX.test(scene);
   TRIGGER_REGEX.lastIndex = 0;
 
-  // Fetch usage + past generations on mount
   useEffect(() => {
     if (!isLoaded || !user) return;
 
@@ -92,7 +93,6 @@ export default function Home() {
       .catch(console.error);
   }, [isLoaded, user]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -207,9 +207,38 @@ export default function Home() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setGenerations(prev => prev.filter(g => g.id !== id));
-    if (selected?.id === id) setSelected(null);
+  // UUID check — IDs from Supabase are UUIDs; session-only IDs are timestamps
+  const isSupabaseId = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  const requestDelete = (gen: Generation) => {
+    setConfirmDelete(gen);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
+    setIsDeleting(true);
+
+    const gen = confirmDelete;
+    setConfirmDelete(null);
+
+    // If it's a real Supabase record, delete from DB + Storage
+    if (isSupabaseId(gen.id)) {
+      try {
+        await fetch("/api/delete", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: gen.id, imageUrl: gen.url }),
+        });
+      } catch (err) {
+        console.error("Delete error:", err);
+      }
+    }
+
+    // Always remove from local state
+    setGenerations(prev => prev.filter(g => g.id !== gen.id));
+    if (selected?.id === gen.id) setSelected(null);
+    setIsDeleting(false);
   };
 
   const activeImage = selected?.url || null;
@@ -342,6 +371,17 @@ export default function Home() {
         .thumb-delete { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.7); border: none; color: rgba(255,255,255,0.4); width: 16px; height: 16px; border-radius: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; opacity: 0; transition: opacity 0.15s; }
         .thumb-wrap:hover .thumb-delete { opacity: 1; }
         .thumb-delete:hover { color: #ff6b6b; }
+        /* Confirm dialog */
+        .confirm-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 32px; pointer-events: none; }
+        .confirm-box { pointer-events: all; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); animation: slideUp 0.15s ease; }
+        @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .confirm-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
+        .confirm-actions { display: flex; gap: 8px; }
+        .confirm-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+        .confirm-cancel:hover { border-color: var(--border-hover); color: var(--text); }
+        .confirm-ok { background: transparent; border: 1px solid rgba(255,107,107,0.35); color: #ff6b6b; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+        .confirm-ok:hover { background: rgba(255,107,107,0.08); border-color: rgba(255,107,107,0.6); }
+        .confirm-ok:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 
       <header className="header">
@@ -382,15 +422,9 @@ export default function Home() {
                 <div className="dropdown-name">{user?.fullName || firstName}</div>
                 <div className="dropdown-plan">{usage?.plan || "enterprise"} plan · {usage?.remaining || 0} remaining</div>
               </div>
-              <a href="/assets" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                ◫ My assets
-              </a>
-              <button className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                ⚙ Settings
-              </button>
-              <button className="dropdown-item danger" onClick={() => signOut({ redirectUrl: "/sign-in" })}>
-                → Sign out
-              </button>
+              <a href="/assets" className="dropdown-item" onClick={() => setDropdownOpen(false)}>◫ My assets</a>
+              <button className="dropdown-item" onClick={() => setDropdownOpen(false)}>⚙ Settings</button>
+              <button className="dropdown-item danger" onClick={() => signOut({ redirectUrl: "/sign-in" })}>→ Sign out</button>
             </div>
           )}
         </div>
@@ -471,7 +505,7 @@ export default function Home() {
                 <button className="icon-btn refine-btn" onClick={() => handleRefine(activeImage)} disabled={isRefining}>
                   {isRefining ? "refining..." : "✦ refine"}
                 </button>
-                {selected && <button className="icon-btn danger" onClick={() => handleDelete(selected.id)}>✕ remove</button>}
+                {selected && <button className="icon-btn danger" onClick={() => requestDelete(selected)}>✕ remove</button>}
               </div>
             )}
           </div>
@@ -511,7 +545,7 @@ export default function Home() {
                   <div key={gen.id} className={`thumb-wrap ${selected?.id === gen.id ? "active" : ""}`} onClick={() => setSelected(gen)} title={gen.scene}>
                     <img src={gen.url} alt={gen.scene} />
                     <span className="thumb-badge">{gen.model === "flux2" ? "F2" : gen.model === "nano" ? "NB" : "F1"}</span>
-                    <button className="thumb-delete" onClick={e => { e.stopPropagation(); handleDelete(gen.id); }}>✕</button>
+                    <button className="thumb-delete" onClick={e => { e.stopPropagation(); requestDelete(gen); }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -519,6 +553,21 @@ export default function Home() {
           )}
         </section>
       </div>
+
+      {/* Confirm delete dialog */}
+      {confirmDelete && (
+        <div className="confirm-overlay">
+          <div className="confirm-box">
+            <span className="confirm-text">remove this image? this cannot be undone.</span>
+            <div className="confirm-actions">
+              <button className="confirm-cancel" onClick={() => setConfirmDelete(null)}>cancel</button>
+              <button className="confirm-ok" onClick={confirmDeleteAction} disabled={isDeleting}>
+                {isDeleting ? "removing..." : "remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
