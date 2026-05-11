@@ -10,7 +10,7 @@ export default function SignUpPage() {
       background: "#141414",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;1,400&family=IBM+Plex+Sans:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400&display=swap');
         .cl-card { background: #1c1c1c !important; border: 1px solid rgba(255,255,255,0.09) !important; border-radius: 2px !important; box-shadow: none !important; }
         .cl-headerTitle { color: #ebebeb !important; }
         .cl-headerSubtitle { color: rgba(235,235,235,0.45) !important; }
@@ -23,15 +23,18 @@ export default function SignUpPage() {
         .cl-dividerText { color: rgba(235,235,235,0.35) !important; }
         .cl-socialButtonsBlockButton { background: #222222 !important; border: 1px solid rgba(255,255,255,0.09) !important; color: #ebebeb !important; border-radius: 2px !important; }
       `}</style>
-
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ fontFamily: "'Libre Caslon Text', serif", fontSize: 32, color: "#F4A233", fontStyle: "italic" }}>A</span>
-          <span style={{ fontFamily: "'Libre Caslon Text', serif", fontSize: 32, color: "#7EC8E3" }}>C</span>
-          <span style={{ fontFamily: "'Libre Caslon Text', serif", fontSize: 32, color: "#2DCA72" }}>I</span>
-          <span style={{ fontFamily: "'Libre Caslon Text', serif", fontSize: 32, color: "#E88CBF" }}>D</span>
-          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, color: "rgba(235,235,235,0.35)", verticalAlign: "super" }}>™</span>
-          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, color: "rgba(235,235,235,0.3)", marginLeft: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>Tony Character Studio ©</span>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <img src="/logo.svg" alt="ACID" style={{ height: 44, width: "auto", display: "block" }} />
+          <span style={{
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontSize: 11,
+            color: "rgba(235,235,235,0.3)",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+          }}>
+            Tony Character Studio ©
+          </span>
         </div>
         <SignUp />
       </div>
