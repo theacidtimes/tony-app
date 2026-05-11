@@ -109,7 +109,7 @@ export default function AssetsPage() {
   return (
     <main>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=Libre+Caslon+Text:ital,wght@0,400;1,400&family=IBM+Plex+Sans:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=IBM+Plex+Sans:wght@300;400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg: #141414; --surface: #1c1c1c; --surface-2: #222222; --surface-3: #282828;
@@ -121,7 +121,7 @@ export default function AssetsPage() {
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
         .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); gap: 24px; }
-        .acid-logo { display: flex; align-items: baseline; flex-shrink: 0; }
+        .acid-logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
         .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 20px; letter-spacing: 0.02em; }
         .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 8px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; }
         .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 12px; align-self: center; }
@@ -191,15 +191,9 @@ export default function AssetsPage() {
       <header className="header">
         <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           <div className="acid-logo">
-            <span className="acid-letters">
-              <span style={{ color: "#F4A233" }}>A</span>
-              <span style={{ color: "#7EC8E3" }}>C</span>
-              <span style={{ color: "#2DCA72" }}>I</span>
-              <span style={{ color: "#E88CBF" }}>D</span>
-            </span>
-            <span className="acid-tm">™</span>
+            <img src="/logo.svg" alt="ACID" style={{ height: 28, width: "auto", display: "block" }} />
+            <span className="acid-sub">Tony Character Studio ©</span>
           </div>
-          <span className="acid-sub">Tony Character Studio ©</span>
         </div>
 
         <div className="header-right" ref={dropdownRef}>
