@@ -70,12 +70,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoaded || !user) return;
-
-    fetch("/api/usage")
-      .then(r => r.json())
-      .then(setUsage)
-      .catch(console.error);
-
+    fetch("/api/usage").then(r => r.json()).then(setUsage).catch(console.error);
     fetch("/api/generations")
       .then(r => r.json())
       .then((data: Array<{ id: string; image_url: string; scene: string; model: string }>) => {
@@ -120,12 +115,10 @@ export default function Home() {
     }
     setIsLoading(true);
     setError(null);
-
     try {
       setLoadingStep("Refining scene...");
       const refineRes = await fetch("/api/refine", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scene, cameraAngle }),
       });
       const refineData = await refineRes.json();
@@ -133,8 +126,7 @@ export default function Home() {
 
       setLoadingStep("Generating...");
       const generateRes = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refinedPrompt: refineData.refinedPrompt, aspectRatio, model, scene }),
       });
       const generateData = await generateRes.json();
@@ -144,13 +136,10 @@ export default function Home() {
         id: Date.now().toString(),
         url: generateData.imageUrl,
         scene: scene.slice(0, 60) + (scene.length > 60 ? "..." : ""),
-        aspectRatio,
-        model,
+        aspectRatio, model,
       };
-
       setGenerations(prev => [newGen, ...prev]);
       setSelected(newGen);
-
       if (usage) {
         setUsage(prev => prev ? { ...prev, used: prev.used + 1, remaining: prev.remaining - 1, percentage: Math.min(100, Math.round(((prev.used + 1) / prev.limit) * 100)) } : prev);
       }
@@ -166,19 +155,15 @@ export default function Home() {
     setIsRefining(true);
     try {
       const res = await fetch("/api/refine-character", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageUrl: url, scene: (selected?.scene || "") + " ✦refined" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
       const refined: Generation = {
-        id: Date.now().toString(),
-        url: data.imageUrl,
+        id: Date.now().toString(), url: data.imageUrl,
         scene: (selected?.scene || "") + " ✦refined",
-        aspectRatio: selected?.aspectRatio || aspectRatio,
-        model: "nano",
+        aspectRatio: selected?.aspectRatio || aspectRatio, model: "nano",
       };
       setGenerations(prev => [refined, ...prev]);
       setSelected(refined);
@@ -207,35 +192,24 @@ export default function Home() {
     }
   };
 
-  // UUID check — IDs from Supabase are UUIDs; session-only IDs are timestamps
   const isSupabaseId = (id: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  const requestDelete = (gen: Generation) => {
-    setConfirmDelete(gen);
-  };
+  const requestDelete = (gen: Generation) => setConfirmDelete(gen);
 
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
     setIsDeleting(true);
-
     const gen = confirmDelete;
     setConfirmDelete(null);
-
-    // If it's a real Supabase record, delete from DB + Storage
     if (isSupabaseId(gen.id)) {
       try {
         await fetch("/api/delete", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          method: "DELETE", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: gen.id, imageUrl: gen.url }),
         });
-      } catch (err) {
-        console.error("Delete error:", err);
-      }
+      } catch (err) { console.error("Delete error:", err); }
     }
-
-    // Always remove from local state
     setGenerations(prev => prev.filter(g => g.id !== gen.id));
     if (selected?.id === gen.id) setSelected(null);
     setIsDeleting(false);
@@ -250,7 +224,7 @@ export default function Home() {
   return (
     <main>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=Libre+Caslon+Text:ital,wght@0,400;1,400&family=IBM+Plex+Sans:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;500&family=Syne+Mono&family=IBM+Plex+Sans:wght@300;400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg: #141414; --surface: #1c1c1c; --surface-2: #222222; --surface-3: #282828;
@@ -262,10 +236,8 @@ export default function Home() {
         }
         html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; -webkit-font-smoothing: antialiased; min-height: 100vh; }
         .header { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); gap: 24px; }
-        .acid-logo { display: flex; align-items: baseline; flex-shrink: 0; }
-        .acid-letters { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-size: 20px; letter-spacing: 0.02em; }
-        .acid-tm { font-family: 'IBM Plex Sans', sans-serif; font-size: 8px; font-weight: 300; vertical-align: super; color: var(--text-dim); margin-left: 1px; }
-        .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; margin-left: 12px; align-self: center; }
+        .acid-logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .acid-sub { font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; }
         .header-usage { display: flex; align-items: center; gap: 12px; flex: 1; max-width: 360px; margin: 0 auto; }
         .usage-label { font-family: var(--mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.1em; white-space: nowrap; }
         .usage-bar-wrap { flex: 1; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
@@ -371,7 +343,6 @@ export default function Home() {
         .thumb-delete { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.7); border: none; color: rgba(255,255,255,0.4); width: 16px; height: 16px; border-radius: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; opacity: 0; transition: opacity 0.15s; }
         .thumb-wrap:hover .thumb-delete { opacity: 1; }
         .thumb-delete:hover { color: #ff6b6b; }
-        /* Confirm dialog */
         .confirm-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 32px; pointer-events: none; }
         .confirm-box { pointer-events: all; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); animation: slideUp 0.15s ease; }
         @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -385,16 +356,8 @@ export default function Home() {
       `}</style>
 
       <header className="header">
-        <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-          <div className="acid-logo">
-            <span className="acid-letters">
-              <span style={{ color: "#F4A233" }}>A</span>
-              <span style={{ color: "#7EC8E3" }}>C</span>
-              <span style={{ color: "#2DCA72" }}>I</span>
-              <span style={{ color: "#E88CBF" }}>D</span>
-            </span>
-            <span className="acid-tm">™</span>
-          </div>
+        <div className="acid-logo">
+          <img src="/logo.svg" alt="ACID" style={{ height: 28, width: "auto", display: "block" }} />
           <span className="acid-sub">Tony Character Studio ©</span>
         </div>
 
@@ -437,9 +400,7 @@ export default function Home() {
             <span className="trigger-text">{hasTrigger ? "trigger connected" : "trigger not detected"}</span>
             <span className="trigger-tag">TONI_TIGER</span>
           </div>
-
           <div className="divider" />
-
           <div className="field-block">
             <div className="field-header">
               <span className="field-label">Scene</span>
@@ -451,7 +412,6 @@ export default function Home() {
             </div>
             <p className="hint-text">Use <em>toni</em> ou <em>tony</em> na cena para conectar ao trigger.</p>
           </div>
-
           <div className="field-block">
             <span className="field-label">Model</span>
             <div className="model-grid">
@@ -460,7 +420,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           <div className="field-block">
             <span className="field-label">Camera</span>
             <div className="select-wrap">
@@ -470,7 +429,6 @@ export default function Home() {
               <span className="select-arrow">▾</span>
             </div>
           </div>
-
           <div className="field-block">
             <span className="field-label">Format</span>
             <div className="ratio-grid">
@@ -479,7 +437,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           <div className="field-block">
             <button className="generate-btn" onClick={handleGenerate} disabled={isLoading || !scene.trim() || (usage ? usage.remaining <= 0 : false)}>
               {isLoading ? loadingStep : usage && usage.remaining <= 0 ? "Limit reached" : "Generate"}
@@ -492,7 +449,6 @@ export default function Home() {
             )}
             {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
           </div>
-
           <p className="panel-footer">Scene descriptions are refined automatically.<br />Character rules applied behind the scenes.</p>
         </aside>
 
@@ -509,7 +465,6 @@ export default function Home() {
               </div>
             )}
           </div>
-
           <div className="output-canvas">
             {!activeImage && !isLoading && (
               <div className="output-empty">
@@ -533,7 +488,6 @@ export default function Home() {
               </div>
             )}
           </div>
-
           {generations.length > 0 && (
             <div className="gallery-section">
               <div className="gallery-header">
@@ -554,7 +508,6 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Confirm delete dialog */}
       {confirmDelete && (
         <div className="confirm-overlay">
           <div className="confirm-box">
